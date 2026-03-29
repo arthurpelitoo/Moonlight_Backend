@@ -1,5 +1,5 @@
 //ORDEM: dc src/config/testConnection.ts
-import db from './database';
+const db = require('./database');
 
 async function listarProdutos() {
     try {

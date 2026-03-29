@@ -4,8 +4,7 @@ import { createPool } from '../config/database';
 
 const getUsers = async (req: Request, res: Response) => {
   try {
-    // No PHP seria: $result = mysqli_query($conn, "SELECT * FROM usuarios");
-    const [rows] = await createPool.query('SELECT id_usuario, nome_usuario, email_usuario FROM usuarios');
+    const [rows] = await createPool.query('SELECT id_usuario, nome_usuario, email_usuario FROM users');
     
     return res.status(200).json(rows);
   } catch (error) {
