@@ -1,5 +1,5 @@
 ## 🌙 Sobre o Projeto
-Este é o **🗃️Back-end** do projeto **🌙Moonlight**, uma loja de e-commerce focada no público gamer. A aplicação foi construída utilizando **❇️Node.js** e **📈TypeScript** com **⚛️REACT*** para garantir maior segurança e organização no desenvolvimento.
+Este é o **🗃️Back-end** do projeto **🌙Moonlight**, uma loja de e-commerce focada no público gamer. A aplicação foi construída utilizando **❇️Node.js** e **📈TypeScript** para garantir maior segurança e organização no desenvolvimento.
 
 📌Esta parte da aplicação é responsável por gerenciar o banco de dados, autenticação de usuários e as regras de negócios da loja.👾
 

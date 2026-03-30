@@ -8,6 +8,16 @@ export interface IUser {
   nivel_acesso: 'admin' | 'cliente';
 }
 
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id_usuario: number;
+      };
+    }
+  }
+}
+
 export interface IProduct {
   id_produto?: number;
   nome_produto: string;
