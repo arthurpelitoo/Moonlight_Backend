@@ -1,26 +1,3 @@
-# TODO: Implement User Edit Controller - COMPLETE ✅
-
-## Plan Steps (Completed)
-1. [x] Install dependencies: bcryptjs, jsonwebtoken, types.
-2. [x] Create src/utils/validators.ts (CPF, password validation).
-3. [x] Create src/middlewares/authMiddleware.ts (JWT verify).
-4. [x] Update src/@types/index.d.ts (add req.user).
-5. [x] Update src/controllers/userController.ts (fix import, add updateUser).
-6. [x] Update src/routes/userRoutes.ts (add PUT route).
-7. [x] Update src/servers/server.ts (add middleware, mount routes).
-8. [x] Add .env example for JWT_SECRET.
-9. [x] Ready for test: npm run dev
-
-## Usage
-- Copy .env.example to .env, set JWT_SECRET and DB creds.
-- Run `npm run dev`
-- GET /api/users - list users
-- PUT /api/users/{your_id} - edit with Bearer {jwt_token}
-
-User controller created with edit function fully implemented: authenticated, self-only, required fields, CPF validation, strong password, no email change.
-
----
-
 # NOVO: Cadastro de Usuário (POST /api/users)
 
 **Informações Reunidas:**
@@ -52,7 +29,11 @@ User controller created with edit function fully implemented: authenticated, sel
 4. [x] TODO updated
 
 **Teste POST:**
-curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d '{"nome_usuario":"João","email_usuario":"joao@test.com","senha_usuario":"Abc1@Defg","cpf_usuario":"12345678901"}'
+curl -X POST http://localhost:3000/api/users -H "Content-Type: application/json" -d 
+'{"nome_usuario":"João",
+"email_usuario":"joao@test.com",
+"senha_usuario":"Abc1@Defg",
+"cpf_usuario":"12345678901"}'
 
 
 

@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import pool from '../config/database.js';
-import { validarCpf, isStrongPassword, isValidEmail } from '../utils/validators.js';
+import { isValidEmail, isStrongPassword, validateCPF} from '../utils/validators.js';
 import bcrypt from 'bcryptjs';
 
 export const getUsers = async (req: Request, res: Response) => {
@@ -20,7 +20,7 @@ export const updateUser = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
     }
 
-    if (!validateCPF(cpf_usuario)) {
+    if (!validateCPF (cpf_usuario)) {
       return res.status(400).json({ message: 'CPF inválido' });
     }
 
@@ -53,6 +53,7 @@ export const updateUser = async (req: Request, res: Response) => {
   }
 };
 
+//Constante de criação de usuario
 export const createUser = async (req: Request, res: Response) => {
   try {
     const { nome_usuario, email_usuario, senha_usuario, cpf_usuario } = req.body;
