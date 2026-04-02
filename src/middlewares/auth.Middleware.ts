@@ -11,7 +11,7 @@ interface JWTPayload {
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload;
+      User: JWTPayload;
     }
   }
 }
@@ -26,13 +26,13 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   const token = authHeader.substring(7);
 
   try {
-    const secret = process.env.JWT_SECRET;
+    const secret = process.env.JWT_SECRET;  
     if (!secret) {
       return res.status(500).json({ message: 'JWT_SECRET não configurado' });
     }
 
     const decoded = jwt.verify(token, secret) as JWTPayload;
-    req.user = decoded;
+    req.User = decoded;
     next();
   } catch (error) {
     return res.status(403).json({ message: 'Token inválido' });

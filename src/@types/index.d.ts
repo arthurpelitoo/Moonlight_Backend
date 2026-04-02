@@ -1,28 +1,28 @@
 //ORDEM: dc //src/@types/index.ts
 export interface IUser {
-  id_usuario?: number;
-  nome_usuario: string;
-  email_usuario: string;
-  senha_usuario: string; //back-end, trataremos o hash
-  cpf_usuario: string;
-  nivel_acesso: 'admin' | 'cliente';
+  id_user?: number;
+  name_user: string;
+  email_user: string;
+  password_user: string; //back-end, trataremos o hash
+  cpf_user: string;
+  level_access: 'admin' | 'client';
 }
 
 declare global {
   namespace Express {
     interface Request {
       user?: {
-        id_usuario: number;
+        id_user: number;
       };
     }
   }
 }
 
 export interface IProduct {
-  id_produto?: number;
-  nome_produto: string;
-  desc_produto: string;
-  preco_produto: number;
-  qtd_estoque: number;
-  id_categoria: number;
+  id_product?: number;
+  name_product: string;
+  desc_product: string;
+  price_product: number;
+  quantity_iventory: number;
+  id_category: number;
 }

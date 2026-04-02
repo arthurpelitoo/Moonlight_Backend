@@ -1,11 +1,20 @@
 import { Router } from 'express';
-import { login, register } from '../controllers/auth.Controller.js';
+import { login, registerUser } from '../controllers/auth.Controller.js';
+import { createUser } from '../controllers/user.Controller.js';
 
 const router = Router();
 
-router.post('/login', login);
-router.post('/register', register);
+router.post('/auth/login', login);
+router.get('/users', );
+router.get('/users/:id', login);
+router.post('/users', createUser)
+router.delete('/delete', login);
 
-return res.status(201).json({message: 'Usuário cadastrado com sucesso!'});
+////////////////////////////////
+
+router.post('/register', registerUser);
+router.get('/register', registerUser);
+router.put('/register', registerUser);
+router.delete('/register', registerUser);
 
 export default router; 

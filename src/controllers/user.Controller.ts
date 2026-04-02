@@ -3,6 +3,7 @@ import pool from '../config/database.js';
 import { isValidEmail, isStrongPassword, validateCPF} from '../utils/validators.js';
 import bcrypt from 'bcryptjs';
 
+//Constante de listagem de usuarios
 export const getUsers = async (req: Request, res: Response) => {
   try {
     const [rows] = await pool.query('SELECT id_usuario, nome_usuario, email_usuario FROM users');
@@ -12,26 +13,27 @@ export const getUsers = async (req: Request, res: Response) => {
   }
 };
 
+//Constante de atualização de usuario
 export const updateUser = async (req: Request, res: Response) => {
   try {
-    const { nome_usuario, senha_usuario, cpf_usuario, nivel_acesso } = req.body;
+    const { name_user, password_user, cpf_user, level_access } = req.body;
 
-    if (!nome_usuario || !senha_usuario || !cpf_usuario || !nivel_acesso) {
+    if (!name_user || !password_user || !cpf_user || !level_access) {
       return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
     }
 
-    if (!validateCPF (cpf_usuario)) {
+    if (!validateCPF (cpf_user)) {
       return res.status(400).json({ message: 'CPF inválido' });
     }
 
-    if (!isStrongPassword(senha_usuario)) {
+    if (!isStrongPassword(password_user)) {
       return res.status(400).json({ message: 'Senha deve ter pelo menos 16 caracteres, com maiúscula, minúscula, números' });
     }
 
-    const hashedSenha = await bcrypt.hash(senha_usuario, 12);
+    const hashedPassword = await bcrypt.hash(password_user, 12);
 
     const paramId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const userId = req.user!.id_usuario;
+    const userId = req.user!.id_user;
 
     if (parseInt(paramId || '0') !== userId) {
       return res.status(403).json({ message: 'Você só pode editar o seu próprio usuário' });
@@ -39,7 +41,7 @@ export const updateUser = async (req: Request, res: Response) => {
 
     const [result] = await pool.query(
       'UPDATE users SET nome_usuario = ?, senha_usuario = ?, cpf_usuario = ?, nivel_acesso = ? WHERE id_usuario = ?',
-      [nome_usuario, hashedSenha, cpf_usuario, nivel_acesso, userId]
+      [name_user, hashedPassword, cpf_user, level_access, userId]
     );
 
     if ((result as any).affectedRows === 0) {
@@ -56,38 +58,38 @@ export const updateUser = async (req: Request, res: Response) => {
 //Constante de criação de usuario
 export const createUser = async (req: Request, res: Response) => {
   try {
-    const { nome_usuario, email_usuario, senha_usuario, cpf_usuario } = req.body;
+    const { name_user, email_user, password_user, cpf_user } = req.body;
 
-    if (!nome_usuario || !email_usuario || !senha_usuario || !cpf_usuario) {
+    if (!name_user || !email_user || !password_user || !cpf_user) {
       return res.status(400).json({ message: 'nome_usuario, email_usuario, senha_usuario e cpf_usuario são obrigatórios' });
     }
 
-    if (!validateCPF(cpf_usuario)) {
+    if (!validateCPF(cpf_user)) {
       return res.status(400).json({ message: 'CPF inválido' });
     }
 
-    if (!isValidEmail(email_usuario)) {
+    if (!isValidEmail(email_user)) {
       return res.status(400).json({ message: 'Email inválido' });
     }
 
-    if (!isStrongPassword(senha_usuario)) {
+    if (!isStrongPassword(password_user)) {
       return res.status(400).json({ message: 'Senha deve ter pelo menos 8 caracteres, maiúscula, minúscula, número e caractere especial' });
     }
 
     const [emailCheck] = await pool.query(
       'SELECT COUNT(*) as count FROM users WHERE email_usuario = ?',
-      [email_usuario]
+      [email_user]
     );
 
     if ((emailCheck as any)[0].count > 0) {
       return res.status(409).json({ message: 'Email já cadastrado' });
     }
 
-    const hashedSenha = await bcrypt.hash(senha_usuario, 12);
+    const hashedPassword= await bcrypt.hash(password_user, 12);
 
     const [result] = await pool.query(
       'INSERT INTO users (nome_usuario, email_usuario, senha_usuario, cpf_usuario, nivel_acesso) VALUES (?, ?, ?, ?, ?)',
-      [nome_usuario, email_usuario, hashedSenha, cpf_usuario, 'cliente']
+      [name_user, email_user, hashedPassword, cpf_user, 'cliente']
     );
 
     const newUserId = (result as any).insertId;
