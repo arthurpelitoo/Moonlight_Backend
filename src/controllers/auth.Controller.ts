@@ -19,16 +19,16 @@ export const login = async (req: Request, res: Response) => {
       [email_user]
     );
 
-    const user = (rows as any[])[0];
+    const User = (rows as any[])[0];
 
     // Verifica se usuário existe
-    if (!user) {
+    if (!User) {
       return res.status(401).json({ message: 'Email ou senha inválidos' });
     }
 
     // Verifica se a senha está correta
-    const senhaCorreta = await bcrypt.compare(password_user, user.password_user);
-    if (!senhaCorreta) {
+    const passwordCorrect = await bcrypt.compare(password_user, User.password_user);
+    if (!passwordCorrect) {
       return res.status(401).json({ message: 'Email ou senha inválidos' });
     }
 
@@ -39,7 +39,9 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id_user: user.id_user },
+      { id_user: User.id_user, 
+        type: User.type
+      },
       secret,
       { expiresIn: '8h' }
     );
@@ -47,11 +49,11 @@ export const login = async (req: Request, res: Response) => {
     return res.status(200).json({
       message: 'Login realizado com sucesso!',
       token,
-      user: {
-        id_user: user.id_user,
-        name_user: user.name_user,
-        email_user: user.email_user,
-        level_access: user.level_access
+      User: {
+        id_user: User.id_user,
+        name_user: User.name_user,
+        email_user: User.email_user,
+        level_access: User.level_access
       }
     });
 

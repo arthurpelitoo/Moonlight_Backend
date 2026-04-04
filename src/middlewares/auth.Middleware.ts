@@ -5,7 +5,8 @@ import type { Request, Response, NextFunction } from 'express';
 dotenv.config();
 
 interface JWTPayload {
-  id_usuario: number;
+  id_user: number;
+  type: 'customer' | 'admin'; 
 }
 
 declare global {

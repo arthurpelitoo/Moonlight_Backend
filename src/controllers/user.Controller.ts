@@ -63,15 +63,15 @@ export const createUser = async (req: Request, res: Response) => {
     if (!name_user || !email_user || !password_user || !cpf_user) {
       return res.status(400).json({ message: 'nome_usuario, email_usuario, senha_usuario e cpf_usuario são obrigatórios' });
     }
-
+    //validação de cpf
     if (!validateCPF(cpf_user)) {
       return res.status(400).json({ message: 'CPF inválido' });
     }
-
+    //validação de email
     if (!isValidEmail(email_user)) {
       return res.status(400).json({ message: 'Email inválido' });
     }
-
+    //verifiação de nivel de sennha
     if (!isStrongPassword(password_user)) {
       return res.status(400).json({ message: 'Senha deve ter pelo menos 8 caracteres, maiúscula, minúscula, número e caractere especial' });
     }
@@ -97,5 +97,54 @@ export const createUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Erro interno ao criar usuário', error });
+  }
+};
+
+export const getUserById = async (req: Request, res: Response) => {
+  try {
+    const paramId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+    const [rows] = await pool.query(
+      'SELECT id_usuario, nome_usuario, email_usuario, nivel_acesso FROM users WHERE id_usuario = ?',
+      [paramId]
+    );
+
+    const usuario = (rows as any[])[0];
+
+    if (!usuario) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    return res.status(200).json(usuario);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro interno ao buscar usuário', error });
+  }
+};
+
+// ========== DELETE ==========
+export const deleteUser = async (req: Request, res: Response) => {
+  try {
+    const paramId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const userId = req.user!.id_user;
+
+    //dó pode deletar a própria conta
+    if (parseInt(paramId || '0') !== userId) {
+      return res.status(403).json({ message: 'Você só pode deletar o seu próprio usuário' });
+    }
+
+    const [result] = await pool.query(
+      'DELETE FROM users WHERE id_usuario = ?',
+      [userId]
+    );
+
+    if ((result as any).affectedRows === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    return res.status(200).json({ message: 'Usuário deletado com sucesso!' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Erro interno ao deletar usuário', error });
   }
 };

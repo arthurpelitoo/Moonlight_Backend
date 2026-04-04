@@ -1,6 +1,6 @@
 //ORDEM: dc //src/@types/index.ts
 export interface IUser {
-  id_user?: number;
+  id_user?: string;
   name_user: string;
   email_user: string;
   password_user: string; //back-end, trataremos o hash
