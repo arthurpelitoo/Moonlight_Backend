@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import pool from '../config/database.js';
 
-// ========== GET ALL GAMES ==========
+// get/lista os jogos pelas descrições mostradas no card
 export const getGames = async (req: Request, res: Response) => {
   try {
     const [rows] = await pool.query(`
@@ -23,7 +23,7 @@ export const getGames = async (req: Request, res: Response) => {
   }
 };
 
-// ========== GET GAME BY ID ==========
+// busca os jogos pelo seu id
 export const getGameById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -53,7 +53,7 @@ export const getGameById = async (req: Request, res: Response) => {
   }
 };
 
-// ========== CREATE GAME (admin) ==========
+// Cria os jogos pelo comando do (admin) 
 export const createGame = async (req: Request, res: Response) => {
   try {
     const { title, description, price, image, link, launch_date, active, stock_available, categories } = req.body;
@@ -83,7 +83,7 @@ export const createGame = async (req: Request, res: Response) => {
   }
 };
 
-// ========== UPDATE GAME (admin) ==========
+// atyaliza o jogo pelos comandos de um (Admin)
 export const updateGame = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -122,7 +122,7 @@ export const updateGame = async (req: Request, res: Response) => {
   }
 };
 
-// ========== DELETE GAME (admin) ==========
+// Deleta o jogo pelos comandos de (admin) 
 export const deleteGame = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

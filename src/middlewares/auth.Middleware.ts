@@ -9,6 +9,7 @@ interface JWTPayload {
   type: 'customer' | 'admin'; 
 }
 
+//declaração de variável global
 declare global {
   namespace Express {
     interface Request {
@@ -44,3 +45,4 @@ export default authMiddleware;
 
 
 
+ 
