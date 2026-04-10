@@ -1,11 +1,16 @@
 import { cpf } from 'cpf-cnpj-validator';
 
+type validTypes = "customer" | "admin";
+
 export const validateCPF = (cpfUser: string): boolean => {
-  const cpfClean = cpfUser.replace(/[.\-]/g, '');
-  return cpf.isValid(cpfClean);
+  return cpf.isValid(cpfUser);
 };
 
-export function isValidEmail(email: string): boolean {
+export const cpfCleaner = (cpf: string): string => {
+  return cpf.replace(/[.\-]/g, '');
+};
+
+export const isEmailValid = (email: string): boolean => {
     const regex = /^[^\s@]+@[^\s@]+.[^\s@]+$/;
     return regex.test(email);
 };
@@ -19,3 +24,7 @@ export const isStrongPassword = (senha: string): boolean => {
 
   return true;
 };
+
+export const isUserTypeValid = (type: string): type is validTypes => {
+  return type.includes(type as validTypes);
+}

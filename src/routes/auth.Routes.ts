@@ -1,20 +1,15 @@
-import { Router } from 'express';
-import { login, registerUser } from '../controllers/auth.Controller.js';
-import { createUser } from '../controllers/user.Controller.js';
+import express from 'express';
+import { AuthController} from '../controllers/auth.Controller.js';
+import { AuthService } from '../services/AuthService.js';
+import { UserService } from '../services/UserService.js';
 
-const router = Router();
+const authService = AuthService.getInstance();
+const userService = UserService.getInstance();
+const authController = new AuthController(authService, userService);
 
-router.post('/auth/login', login);
-router.get('/users', );
-router.get('/users/:id', login);
-router.post('/users', createUser)
-router.delete('/delete', login);
+const router = express.Router();
 
-////////////////////////////////
+router.post('/login', authController.login);
+router.post('/register', authController.registerUser);
 
-router.post('/register', registerUser);
-router.get('/register', registerUser);
-router.put('/register', registerUser);
-router.delete('/register', registerUser);
-
-export default router; 
+export default router;

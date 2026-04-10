@@ -1,101 +1,133 @@
 import type { Request, Response } from 'express';
 import pool from '../config/database.js';
-import { isValidEmail, isStrongPassword, validateCPF} from '../utils/validators.js';
+import { isEmailValid, isStrongPassword, isUserTypeValid, validateCPF} from '../utils/validators.js';
 import bcrypt from 'bcryptjs';
+import type { UserService } from '../services/UserService.js';
+import type { UserDTO } from '../@types/index.js';
 
-//Constante de listagem de usuarios
-export const getUsers = async (req: Request, res: Response) => {
-  try {
-    const [rows] = await pool.query('SELECT id_usuario, nome_usuario, email_usuario FROM users');
-    return res.status(200).json(rows);
-  } catch (error) {
-    return res.status(500).json({ message: "Erro ao buscar usuários", error });
-  }
-};
+export class UserController{
 
-//Constante de atualização de usuario
-export const updateUser = async (req: Request, res: Response) => {
-  try {
-    const { name_user, password_user, cpf_user, level_access } = req.body;
+  constructor(private userService: UserService){}
 
-    if (!name_user || !password_user || !cpf_user || !level_access) {
-      return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+  //Constante de listagem de usuarios
+  getUsers = async (req: Request, res: Response) => {
+    try {
+      const page = parseInt(req.query.page as string ?? '1');
+      const limit = parseInt(req.query.limit as string ?? '10');
+
+      const {data, total} = await this.userService.findAll(page, limit);
+
+      return res.status(200).json({data, total, limit, totalPages: Math.ceil(total / limit)});
+    } catch (error) {
+      return res.status(500).json({ message: 'Erro ao buscar usuários', error });
     }
+  };
 
-    if (!validateCPF (cpf_user)) {
-      return res.status(400).json({ message: 'CPF inválido' });
+  getUserById = async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id ?? '0');
+      if (!userId) return res.status(400).json({ message: 'ID inválido' });
+
+      const usuario = await this.userService.findById(userId);
+
+      if (!usuario) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      return res.status(200).json(usuario);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ message: 'Erro interno ao buscar usuário', error });
     }
+  };
 
-    if (!isStrongPassword(password_user)) {
-      return res.status(400).json({ message: 'Senha deve ter pelo menos 16 caracteres, com maiúscula, minúscula, números' });
+  //Constante de criação de usuario
+  createUser = async (req: Request, res: Response) => {
+    try {
+      const { name, email, password, cpf, type } = req.body;
+
+      if (!name || !email || !password || !cpf || !type) return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+
+      if ((name as string).length > 16) return res.status(400).json({ message: 'Nome deve ter até 16 caracteres máximos' });
+      if (!validateCPF(cpf)) return res.status(400).json({ message: 'CPF inválido' });
+      if (!isEmailValid(email)) return res.status(400).json({ message: 'Email inválido' });
+      if (!isStrongPassword(password)) return res.status(400).json({ message: 'Senha fraca' });
+      if (!isUserTypeValid(type)) return res.status(400).json({ message: 'Tipo inválido'});
+
+      const emailExists = await this.userService.emailAlreadyExists(email);
+      if(emailExists) return res.status(409).json({ message: 'Email já cadastrado' });
+
+      await this.userService.create({name, email, password, cpf, type});
+
+      return res.status(201).json({ message: 'Usuário criado com sucesso!' });
+    } catch (error) {
+      return res.status(500).json({ message: 'Erro interno ao criar usuário', error });
     }
+  };
 
-    const hashedPassword = await bcrypt.hash(password_user, 12);
+  updateUser = async (req: Request, res: Response) => {
+    try {
+      const { name, email, password, cpf, type } = req.body; 
 
-    const paramId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const userId = req.user!.id_user;
+      const userId = parseInt(req.params.id ?? '0');
+      if (!userId) return res.status(400).json({ message: 'ID inválido' });
 
-    if (parseInt(paramId || '0') !== userId) {
-      return res.status(403).json({ message: 'Você só pode editar o seu próprio usuário' });
+      if (!name || !email || !password || !cpf || !type) return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+      
+      if ((name as string).length > 16) return res.status(400).json({ message: 'Nome deve ter até 16 caracteres máximos' });
+      if (!validateCPF(cpf)) return res.status(400).json({ message: 'CPF inválido' });
+      if (!isEmailValid(email)) return res.status(400).json({ message: 'Email inválido' });
+      if (!isStrongPassword(password)) return res.status(400).json({ message: 'Senha fraca' });
+      if (!isUserTypeValid(type)) return res.status(400).json({ message: 'Tipo inválido'});
+
+      const result = await this.userService.update({name, email, password, cpf, type, id_user: userId});
+
+      if (!result) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      return res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
+    } catch (error) {
+      return res.status(500).json({ message: 'Erro interno ao atualizar usuário', error });
     }
+  };
 
-    const [result] = await pool.query(
-      'UPDATE users SET nome_usuario = ?, senha_usuario = ?, cpf_usuario = ?, nivel_acesso = ? WHERE id_usuario = ?',
-      [name_user, hashedPassword, cpf_user, level_access, userId]
-    );
+  //usuario comum pode editar perfil.
+  updateMe = async (req: Request, res: Response) => {
+    try {
+      const { name, password, cpf } = req.body;
+      const userId = req.user!.id_user;  // vem do token
 
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: 'Usuário não encontrado' });
+      if (!name || !password || !cpf) return res.status(400).json({ message: 'Todos os campos são obrigatórios' });
+      if ((name as string).length > 16) return res.status(400).json({ message: 'Nome deve ter até 16 caracteres máximos' });
+      if (!validateCPF(cpf))           return res.status(400).json({ message: 'CPF inválido' });
+      if (!isStrongPassword(password)) return res.status(400).json({ message: 'Senha fraca' });
+
+      const result = await this.userService.updateMe({name, password, cpf, id_user: userId});
+      if (!result) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+      const updatedUser = await this.userService.findById(userId);
+
+      return res.status(200).json({ 
+        message: 'Usuário editado com sucesso!', 
+        user: { id_user: updatedUser!.id_user, name: updatedUser!.name, email: updatedUser!.email, cpf: updatedUser!.cpf, type: updatedUser!.type } as UserDTO
+        });
+    } catch (error) {
+      return res.status(500).json({ message: 'Erro interno ao editar usuário', error });
     }
+  };
 
-    return res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro interno ao atualizar usuário', error });
-  }
-};
+   deleteUser = async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id ?? '0');
+      
+      const result = await this.userService.delete(userId);
+      if (!result) return res.status(404).json({ message: 'Usuário não encontrado' });
 
-//Constante de criação de usuario
-export const createUser = async (req: Request, res: Response) => {
-  try {
-    const { name_user, email_user, password_user, cpf_user } = req.body;
-
-    if (!name_user || !email_user || !password_user || !cpf_user) {
-      return res.status(400).json({ message: 'nome_usuario, email_usuario, senha_usuario e cpf_usuario são obrigatórios' });
+      return res.status(200).json({ message: 'Usuário deletado com sucesso!' });
+    } catch (error) {
+      return res.status(500).json({ message: 'Erro interno ao deletar usuário', error });
     }
+  };
 
-    if (!validateCPF(cpf_user)) {
-      return res.status(400).json({ message: 'CPF inválido' });
-    }
-
-    if (!isValidEmail(email_user)) {
-      return res.status(400).json({ message: 'Email inválido' });
-    }
-
-    if (!isStrongPassword(password_user)) {
-      return res.status(400).json({ message: 'Senha deve ter pelo menos 8 caracteres, maiúscula, minúscula, número e caractere especial' });
-    }
-
-    const [emailCheck] = await pool.query(
-      'SELECT COUNT(*) as count FROM users WHERE email_usuario = ?',
-      [email_user]
-    );
-
-    if ((emailCheck as any)[0].count > 0) {
-      return res.status(409).json({ message: 'Email já cadastrado' });
-    }
-
-    const hashedPassword= await bcrypt.hash(password_user, 12);
-
-    const [result] = await pool.query(
-      'INSERT INTO users (nome_usuario, email_usuario, senha_usuario, cpf_usuario, nivel_acesso) VALUES (?, ?, ?, ?, ?)',
-      [name_user, email_user, hashedPassword, cpf_user, 'cliente']
-    );
-
-    const newUserId = (result as any).insertId;
-    return res.status(201).json({ message: 'Usuário criado com sucesso!', id_usuario: newUserId });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro interno ao criar usuário', error });
-  }
-};
+}

@@ -4,38 +4,47 @@ import type { Request, Response, NextFunction } from 'express';
 
 dotenv.config();
 
-interface JWTPayload {
-  id_usuario: number;
+type JwtPayload = {
+  id_user: number;
 }
 
 declare global {
   namespace Express {
     interface Request {
-      User: JWTPayload;
+      user?: JwtPayload;
     }
   }
 }
 
-export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers.authorization;
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer')) {
+  if (!token || !token.startsWith('Bearer')) {
     return res.status(401).json({ message: 'Token não fornecido' });
   }
 
-  const token = authHeader.substring(7);
+  const parts = token.split(" ");
+  if (parts.length !== 2 || !parts[1]) {
+    return res.status(403).json({ message: 'Token inválido' });
+  }
+
+  const tokenValue = parts[1];
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    return res.status(500).json({ message: 'JWT_SECRET não configurado' });
+  }
 
   try {
-    const secret = process.env.JWT_SECRET;  
-    if (!secret) {
-      return res.status(500).json({ message: 'JWT_SECRET não configurado' });
-    }
-
-    const decoded = jwt.verify(token, secret) as JWTPayload;
-    req.User = decoded;
-    next();
-  } catch (error) {
-    return res.status(403).json({ message: 'Token inválido' });
+      jwt.verify(tokenValue, secret, (err, decoded) => {
+          if (err || !decoded) {
+              return res.status(403).json({ message: 'Token inválido' });
+          }
+          const payload = decoded as JwtPayload;
+          req.user = { id_user: payload.id_user };
+          next();
+      });
+  } catch {
+      return res.status(403).json({ message: 'Token inválido' });
   }
 };
 
