@@ -8,6 +8,7 @@ type JwtPayload = {
   id_user: number;
 }
 
+//declaração de variável global
 declare global {
   namespace Express {
     interface Request {
@@ -49,6 +50,3 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 };
 
 export default authMiddleware;
-
-
-

@@ -13,8 +13,6 @@ src/routes/: Definição dos caminhos da API.
 
 src/server.ts: Ponto de entrada da aplicação.
 
-src/server.ts: Ponto de entrada da aplicação (onde o servidor "funciona").
-
 src/middlewares/: Filtros de segurança e validações que rodam antes de chegar na rota. 
 
 src/services/: Onde fica a regra de negócio (ex: cálculos, integração com banco).

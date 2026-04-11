@@ -6,7 +6,7 @@ import { UserController } from '../controllers/user.Controller.js';
 const userService = UserService.getInstance();
 const userController = new UserController(userService);
 
-const router = express.Router();
+const router = Router();
 
 router.get('/', authMiddleware, userController.getUsers);
 router.post('/', authMiddleware, userController.createUser);
