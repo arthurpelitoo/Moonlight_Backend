@@ -1,7 +1,5 @@
 import type { Request, Response } from 'express';
-import pool from '../config/database.js';
 import { isEmailValid, isStrongPassword, isUserTypeValid, validateCPF} from '../utils/validators.js';
-import bcrypt from 'bcryptjs';
 import type { UserService } from '../services/UserService.js';
 import type { UserDTO } from '../@types/index.js';
 
@@ -29,10 +27,7 @@ export class UserController{
       if (!userId) return res.status(400).json({ message: 'ID inválido' });
 
       const usuario = await this.userService.findById(userId);
-
-      if (!usuario) {
-        return res.status(404).json({ message: 'Usuário não encontrado' });
-      }
+      if (!usuario)return res.status(404).json({ message: 'Usuário não encontrado' });
 
       return res.status(200).json(usuario);
     } catch (error) {
