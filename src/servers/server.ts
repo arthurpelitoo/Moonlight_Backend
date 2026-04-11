@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import userRoutes from '../routes/user.Routes.js';
-import authRoutes from '../routes/auth.Routes.js';
 import gameRoutes from '../routes/games.Routes.js';
 import authRoutes from '../routes/auth.Routes.js';
 
