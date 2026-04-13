@@ -1,21 +1,16 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import type { Request, Response, NextFunction } from 'express';
+import { UserService } from '../services/user.Service.js';
 
 dotenv.config();
 
-type JwtPayload = {
+interface JwtPayload {
   id_user: number;
+  type: "admin" | "customer";
 }
 
-//declaração de variável global
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JwtPayload;
-    }
-  }
-}
+const userService = UserService.getInstance();
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization;
@@ -36,12 +31,16 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
   }
 
   try {
-      jwt.verify(tokenValue, secret, (err, decoded) => {
+      jwt.verify(tokenValue, secret, async (err, decoded) => {
           if (err || !decoded) {
               return res.status(403).json({ message: 'Token inválido' });
           }
           const payload = decoded as JwtPayload;
-          req.user = { id_user: payload.id_user };
+
+          const user = await userService.findById(payload.id_user);
+          if (!user) return res.status(401).json({ message: 'Usuário não encontrado' });
+
+          req.user = { id_user: payload.id_user, type: payload.type };
           next();
       });
   } catch {

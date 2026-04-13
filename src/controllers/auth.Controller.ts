@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { isEmailValid, isStrongPassword, validateCPF } from '../utils/validators.js';
-import type { AuthService } from '../services/AuthService.js';
-import type { UserService } from '../services/UserService.js';
+import type { AuthService } from '../services/auth.Service.js';
+import type { UserService } from '../services/user.Service.js';
 import type { UserDTO } from '../@types/index.js';
 
 export class AuthController {

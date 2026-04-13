@@ -3,7 +3,6 @@ import pool from "../config/database.js";
 import type { UserEntity } from "../models/user.js";
 import jwt from 'jsonwebtoken';
 import type { RowDataPacket } from "mysql2";
-import { UserService } from "./UserService.js";
 
 export class AuthService{
     private static instance: AuthService;
