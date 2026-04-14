@@ -2,6 +2,8 @@
 
 import type { CategoryEntity } from "../models/category.ts";
 import type { GameEntity } from "../models/game.ts";
+import type { OrderEntity } from "../models/order.ts";
+import type { PurchasedItemsEntity } from "../models/purchasedItems.ts";
 import type { UserEntity } from "../models/user.ts";
 
 declare global {
@@ -78,6 +80,15 @@ export interface PriceAuditDTO {
   altered_byUser: string;
 }
 
+// o que vai vir do carrinho do front
+export interface CartItem {
+  id_game: number;
+  title: string;
+  price: number;
+  image?: string;
+  categories?: string[];
+}
+
 /**
  * O que vai chegar de dados em create ou update do front com base no Entity de cada Model.
  */
@@ -90,6 +101,18 @@ export type CategoryQueryPayload = Omit<CategoryEntity, 'id_category'>
 
 export interface GameQueryPayload extends Omit<GameEntity, 'id_game'> {
   categories?: number[];
+}
+
+export interface CheckoutQueryPayload{
+  items: CartItem[];
+  total: number;
+  user: Pick<UserDTO, "name" | "id_user">
+}
+
+export type OrderQueryPayload = Omit<OrderEntity, 'id_order' | 'order_date'>
+
+export interface PurchasedItemsQueryPayload extends Omit<PurchasedItemsEntity, 'id_game' | 'price'>{
+  items: CartItem[];
 }
 
 /**

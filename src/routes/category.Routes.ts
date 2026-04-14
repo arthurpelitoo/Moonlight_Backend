@@ -11,7 +11,7 @@ const router = Router();
 
 router.get('/pag', categoryController.getCategoriesPaginated); // Usuário Lista as categorias
 router.get('/:id', categoryController.getCategoryById); // Usuário Busca a categoria
-router.get('/', authMiddleware, adminMiddleware, categoryController.getCategories);  // só pra completar o crud
+router.get('/', categoryController.getCategories);  // só pra completar o crud
 router.post('/', authMiddleware, adminMiddleware, categoryController.createCategory); // Admin - Cria categoria
 router.put('/:id', authMiddleware, adminMiddleware, categoryController.updateCategory); // Admin - Atualiza categoria
 router.delete('/:id', authMiddleware, adminMiddleware, categoryController.deleteCategory); // Admin - Deleta categoria
