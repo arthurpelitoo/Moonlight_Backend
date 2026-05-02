@@ -1,37 +1,40 @@
 import bcrypt from "bcryptjs";
-import pool from "../config/database.js";
-import type { UserEntity } from "../models/user.js";
 import jwt from 'jsonwebtoken';
-import type { RowDataPacket } from "mysql2";
+import type { AuthResponseDTO, LoginAuthDTO } from "../@types/auth/auth.dto.js";
+import { UserRepository } from "../repositories/UserRepository.js";
+import { AppError } from "../utils/AppError.js";
+import { validateLogin } from "../validators/user.validator.js";
 
 export class AuthService{
-    private static instance: AuthService;
 
-    private constructor() {
+    constructor(private userRepository: UserRepository) {}
+
+    async login(dto: LoginAuthDTO): Promise<AuthResponseDTO>{
+        validateLogin(dto);
+                
+        const user = await this.findByEmail(dto.email);
+        if (!user) throw new AppError("Email ou senha inválidos", 400, "INVALID_FIELDS");
+        
+        const passwordMatch = await this.verifyPassword(dto.password, user.password!);
+        if (!passwordMatch) throw new AppError("Email ou senha inválidos", 400, "INVALID_FIELDS");
+
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new AppError("JWT_SECRET não configurado", 500, "NOT_CONFIGURED_SECRET");
+
+        user.token = this.generateToken(secret, user);
+
+        return user;
     }
 
-    static getInstance(): AuthService{
-        if(!AuthService.instance){
-            AuthService.instance = new AuthService();
-        }
-        return AuthService.instance;
-    }
-
-    async findByEmail(email: string): Promise<UserEntity | null>{
-        const [rows] = await pool.query<RowDataPacket[]>(
-            'SELECT id_user, name, email, password, type, cpf FROM user WHERE email = ?',
-            [email]
-        );
-
-        const users = rows as UserEntity[];
-        return users[0] ?? null;
+    async findByEmail(email: string): Promise<AuthResponseDTO | null>{
+        return this.userRepository.findByEmail(email);
     }
 
     async verifyPassword(password: string, userPassword: string): Promise<boolean>{
         return await bcrypt.compare(password, userPassword);
     }
 
-    generateToken(secret: string | undefined, user: UserEntity): string{
+    generateToken(secret: string | undefined, user: AuthResponseDTO): string{
         return jwt.sign(
             { id_user: user.id_user, type: user.type },
             secret!,

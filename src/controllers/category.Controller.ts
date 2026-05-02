@@ -1,114 +1,95 @@
-import type { Request, Response } from 'express';
-import pool from '../config/database.js';
-import type { CategoryDTO, CategoryPaginatedQueryPayload, CategoryQueryPayload } from '../@types/index.js';
-import type { ResultSetHeader } from 'mysql2';
+import type { NextFunction, Request, Response } from 'express';
 import type { CategoryService } from '../services/category.Service.js';
+import type { CreateCategoryDTO, UpdateCategoryDTO } from '../@types/category/dto/category.input.dto.js';
+import { AppError } from '../utils/AppError.js';
+import { parseCategoriesQuery } from '../query/filters/parsers/categoryParser.js';
+import { toInt } from '../utils/queryParser.js';
 
 export class CategoryController{
 
   constructor(private categoryService: CategoryService){} 
 
-  getCategoriesPaginated = async (req: Request, res: Response): Promise<Response> => {
+  getCategoriesPaginated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const buildQuery = (): CategoryPaginatedQueryPayload => ({
-          page: parseInt(req.query.page as string) || 1,
-          limit: parseInt(req.query.limit as string) || 8,
-          random: req.query.random === 'true',
-          name: req.query.name as string || undefined
-      })
       
-      const result = await this.categoryService.findAllPaginated(buildQuery());
-      if(!result) return res.status(404).json({ message: 'Categorias paginadas não encontradas' });
+      const categories = await this.categoryService.findAllPaginated(parseCategoriesQuery(req.query));
+      if(!categories) throw new AppError("Categorias paginadas não encontradas", 404, "NOT_FOUND_CATEGORIES_PAG");
 
-      return res.status(200).json(result);
+      res.status(200).json(categories);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar categorias paginadas', error });
+      next(error);
     }
   };
 
-  getCategories = async (req: Request, res: Response): Promise<Response> => {
+  getCategories = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       
-      const result = await this.categoryService.findAll();
-      if(!result) return res.status(404).json({ message: 'Categorias não encontradas' });
+      const categories = await this.categoryService.findAll();
+      if(!categories) throw new AppError("Categorias não encontradas", 404, "NOT_FOUND_CATEGORIES");
 
-      return res.status(200).json(result as CategoryDTO[]);
+      res.status(200).json(categories);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar categorias', error });
+      next(error);
     }
   };
 
   // busca os jogos pelo seu id
-  getCategoryById = async (req: Request, res: Response): Promise<Response> => {
+  getCategoryById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const categoryId = parseInt(req.params.id ?? '0');
-      if (!categoryId) return res.status(400).json({ message: 'ID inválido' });
+      const categoryId = toInt(req.params.id, 0);
+      if (!categoryId) throw new AppError("ID inválido", 400, "INVALID_ID");
 
-      const data = await this.categoryService.findById(categoryId);
-      if (!data) return res.status(404).json({ message: 'Categoria não encontrada' });
+      const category = await this.categoryService.findById(categoryId);
+      if (!category) throw new AppError("Categoria não encontrada", 404, "NOT_FOUND_CATEGORY");
       
-      return res.status(200).json(data as CategoryDTO);
+      res.status(200).json(category);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar categoria', error });
+      next(error);
     }
   };
 
   // Cria os jogos pelo comando do (admin) 
-  createCategory = async (req: Request, res: Response): Promise<Response> => {
+  createCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { name, description, image } = req.body;
+      const dto = req.body as CreateCategoryDTO;
 
-      if (!name || !description) return res.status(400).json({ message: 'nome e descrição são obrigatórios' });
+      await this.categoryService.create(dto);
 
-      const buildQuery = (): CategoryQueryPayload => ({name, description, image})
-      const newCategoryId = await this.categoryService.create(buildQuery());
-
-      return res.status(201).json({ message: 'Categoria criada com sucesso!', id_category: newCategoryId });
+      res.status(201).json({ message: 'Categoria criada com sucesso!' });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao criar categoria', error });
+      next(error);
     }
   };
 
   // atyaliza o jogo pelos comandos de um (Admin)
-  updateCategory = async (req: Request, res: Response): Promise<Response> => {
+  updateCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const dto = req.body as UpdateCategoryDTO;
+      
+      const id_category = toInt(req.params.id, 0);
+      if (!id_category) throw new AppError("ID inválido", 400, "INVALID_ID");
 
-      const { id } = req.params;
-      const id_category = parseInt(id as string);
-      const { name, description, image } = req.body;
+      const category = await this.categoryService.update({...dto, id_category});
+      if(!category) throw new AppError("Categoria não encontrada", 404, "NOT_FOUND_CATEGORY");
 
-      if (!name || !description) return res.status(400).json({ message: 'nome e descrição são obrigatórios' });
-
-      const buildQuery = (): CategoryQueryPayload => ({name, description, image})
-
-      const result = await this.categoryService.update(buildQuery(), id_category);
-      if(!result) return res.status(404).json({ message: 'Categoria não encontrada' });
-
-      return res.status(200).json({ message: 'Categoria atualizada com sucesso!' });
-
+      res.status(200).json({ message: 'Categoria atualizada com sucesso!' });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao atualizar categoria', error });
+      next(error)
     }
   };
 
   // Deleta o jogo pelos comandos de (admin) 
-  deleteCategory = async (req: Request, res: Response): Promise<Response> => {
+  deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
-      const id_category = parseInt(id as string);
+      const id_category = toInt(req.params.id, 0);
+      if (!id_category) throw new AppError("ID inválido", 400, "INVALID_ID");
 
-      const result = await this.categoryService.delete(id_category);
-      if(!result) return res.status(404).json({ message: 'Categoria não encontrada' });
+      const category = await this.categoryService.delete(id_category);
+      if(!category) throw new AppError("Categoria não encontrada", 404, "NOT_FOUND_CATEGORY");
 
-      return res.status(200).json({ message: 'Categoria deletada com sucesso!' });
+      res.status(200).json({ message: 'Categoria deletada com sucesso!' });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao deletar categoria', error });
+      next(error);
     }
   };
 }

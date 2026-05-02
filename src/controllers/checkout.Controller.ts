@@ -1,43 +1,42 @@
-import type { Request, Response } from 'express';
-import type { CheckoutQueryPayload } from '../@types/index.js';
+import type { NextFunction, Request, Response } from 'express';
 import type { CheckoutService } from '../services/checkout.Service.js';
+import type { CreateCheckoutDTO, MercadoPagoWebhookDTO } from '../@types/checkout/checkout.dto.js';
+import type { OrderService } from '../services/order.Service.js';
+import { AppError } from '../utils/AppError.js';
 
 export class CheckoutController{
 
-    constructor(private checkoutService: CheckoutService){}
+    constructor(
+        private checkoutService: CheckoutService,
+        private orderService: OrderService
+    ){}
 
-    createCheckout = async (req: Request, res: Response): Promise<Response> => {
+    createCheckout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { items, total, user } = req.body;
-            // items: [{ id_game, title, price }]
+            const dto = req.body as CreateCheckoutDTO;
 
-            const buildQuery = (): CheckoutQueryPayload => ({items, total, user});
+            const preference_id = await this.checkoutService.createPreference(dto);
 
-            const preference_id = await this.checkoutService.createPreference(buildQuery());
-
-            return res.status(200).json({ preference_id });
-
+            res.status(200).json({ preference_id });
         } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Erro ao criar preferência' });
+            next(error);
         }
     };
 
-    handleWebhook = async (req: Request, res: Response): Promise<Response> => {
+    handleWebhook = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const { type, data } = req.body;
+            const body = req.body as MercadoPagoWebhookDTO;
 
-            if (type !== 'payment') return res.status(204).send();
+            if (body.type !== "payment") res.sendStatus(204);
 
-            const payment_id = data?.id;
-            if (!payment_id) return res.status(204).send();
+            const paymentId = body.data?.id;
+            if (!paymentId) res.sendStatus(204);
 
-            const preference_id = await this.checkoutService.getPaymentStatus(payment_id);
-            return res.status(200).json(preference_id);
+            const payment = await this.checkoutService.getPaymentStatus(paymentId);
 
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ message: 'Erro no webhook' });
+            res.status(200).json(payment);
+        } catch(error) {
+            next(error);
         }
     };
 

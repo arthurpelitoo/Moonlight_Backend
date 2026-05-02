@@ -1,149 +1,112 @@
-import type { Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import pool from '../config/database.js';
 import type { GameService } from '../services/game.Service.js';
-import type { GameDTO, GamePaginatedQueryPayload, GameQueryPayload } from '../@types/index.js';
 import type { ResultSetHeader } from 'mysql2';
-import { isPriceValid } from '../utils/Validators/gameValidators.js';
+import type { GameQueryPayload } from '../@types/game/game.payload.js';
+import type { CreateGameDTO, GetGamesPaginatedDTO, UpdateGameDTO } from '../@types/game/dto/game.input.dto.js';
+import { isPriceValid } from '../utils/Validators/isPriceValid.js';
+import { AppError } from '../utils/AppError.js';
+import { toBoolean, toFloat, toInt, toString } from '../utils/queryParser.js';
+import { parseGameQuery } from '../query/filters/parsers/gameParser.js';
 
 export class GameController{
 
   constructor(private gameService: GameService){} 
 
-  getGamesPaginated = async (req: Request, res: Response): Promise<Response> => {
+  getGamesPaginated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const buildQuery = (): GamePaginatedQueryPayload => ({
-          page: parseInt(req.query.page as string) || 1,
-          limit: parseInt(req.query.limit as string) || 8,
-          random: req.query.random === 'true',
-          title: req.query.title as string || undefined,
-          category: req.query.category as string || undefined,
-          launch_date_from: (req.query.launch_date_from as string) || undefined,
-          launch_date_to: (req.query.launch_date_to as string) || undefined,
-          price_min: parseFloat(req.query.price_min as string) || undefined,
-          price_max: parseFloat(req.query.price_max as string) || undefined
-      })
-      
-      const result = await this.gameService.findAllPaginated(buildQuery());
-      if(!result) return res.status(404).json({ message: 'Jogos paginados não encontrados' });
+      const games = await this.gameService.findAllPaginated(parseGameQuery(req.query));
+      if(!games) throw new AppError("Jogos paginados não encontrados", 404, "NOT_FOUND_GAMES_PAG");
 
-      return res.status(200).json(result);
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar jogos paginados', error });
+      res.status(200).json(games);
+    } catch(error) {
+      next(error);
     }
   };
 
-  getGamesAdminPaginated = async (req: Request, res: Response): Promise<Response> => {
+  getGamesAdminPaginated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const buildQuery = (): GamePaginatedQueryPayload => ({
-          page: parseInt(req.query.page as string) || 1,
-          limit: parseInt(req.query.limit as string) || 8,
-          random: req.query.random === 'true',
-          title: req.query.title as string || undefined,
-          category: req.query.category as string || undefined,
-          launch_date_from: (req.query.launch_date_from as string) || undefined,
-          launch_date_to: (req.query.launch_date_to as string) || undefined,
-          price_min: parseFloat(req.query.price_min as string) || undefined,
-          price_max: parseFloat(req.query.price_max as string) || undefined,
-          active: req.query.active !== undefined ? req.query.active === 'true' : undefined,
-          admin: true
-      })
-      
-      const result = await this.gameService.findAllPaginated(buildQuery());
-      if(!result) return res.status(404).json({ message: 'Jogos paginados não encontrados' });
+      const games = await this.gameService.findAllPaginated({
+        ...parseGameQuery(req.query),
+        active: toBoolean(req.query.active),
+        admin: true
+      });
+      if(!games) throw new AppError("Jogos paginados não encontrados", 404, "NOT_FOUND_GAMES_PAG_ADMIN");
 
-      return res.status(200).json(result);
+      res.status(200).json(games);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar jogos paginados', error });
+      next(error);
     }
   };
 
-  getGames = async (req: Request, res: Response): Promise<Response> => {
+  getGames = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      
-      const result = await this.gameService.findAll();
-      if(!result) return res.status(404).json({ message: 'Jogos não encontrados' });
+      const games = await this.gameService.findAll();
+      if(!games) throw new AppError("Jogos não encontrados", 404, "NOT_FOUND_GAMES");
 
-      return res.status(200).json(result as GameDTO[]);
+      res.status(200).json(games);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar jogos', error });
+      next(error);
     }
   };
 
   // busca os jogos pelo seu id
-  getGameById = async (req: Request, res: Response): Promise<Response> => {
+  getGameById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const gameId = parseInt(req.params.id ?? '0');
-      if (!gameId) return res.status(400).json({ message: 'ID inválido' });
+      const gameId = toInt(req.params.id, 0);
+      if(!gameId) throw new AppError("ID inválido", 404, "INVALID_ID");
 
-      const data = await this.gameService.findById(gameId);
-      if (!data) return res.status(404).json({ message: 'Jogo não encontrado' });
+      const game = await this.gameService.findById(gameId);
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME");
       
-      return res.status(200).json(data as GameDTO);
+      res.status(200).json(game);
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao buscar jogo', error });
+      next(error)
     }
   };
 
   // Cria os jogos pelo comando do (admin) 
-  createGame = async (req: Request, res: Response): Promise<Response> => {
+  createGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { title, description, price, image, banner_image, link, launch_date, active, categories } = req.body;
+      const dto = req.body as CreateGameDTO;
 
-      if (!title || !isPriceValid(price) || !launch_date || active === undefined ) return res.status(400).json({ message: 'titulo, preço, data de lançamento e ativo são obrigatórios' });
+      await this.gameService.create(dto);
 
-      const buildQuery = (): GameQueryPayload => ({title, description, price, image, banner_image, link, launch_date, active, categories})
-      const newGameId = await this.gameService.create(buildQuery());
-
-      return res.status(201).json({ message: 'Jogo criado com sucesso!', id_game: newGameId });
+      res.status(201).json({ message: 'Jogo criado com sucesso!'});
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao criar jogo', error });
+      next(error);
     }
   };
 
   // atyaliza o jogo pelos comandos de um (Admin)
-  updateGame = async (req: Request, res: Response): Promise<Response> => {
+  updateGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-
-      const { id } = req.params;
-      const id_game = parseInt(id as string);
-      const { title, description, price, image, banner_image, link, launch_date, active, categories } = req.body;
-
-      if (!title || !isPriceValid(price) || !launch_date || active === undefined) return res.status(400).json({ message: 'titulo, preço, data de lançamento e ativo são obrigatórios' });
-
-      const buildQuery = (): GameQueryPayload => ({title, description, price, image, banner_image, link, launch_date, active, categories})
+      const id_game = parseInt(req.params.id as string);
+      const dto = req.body as UpdateGameDTO;
 
       // Trigger de auditoria de preço dispara automaticamente no banco
       await pool.query<ResultSetHeader>('SET @usuario_logado = ?', [req.user?.id_user]);
 
-      const result = await this.gameService.update(buildQuery(), id_game);
-      if(!result) return res.status(404).json({ message: 'Jogo não encontrado' });
+      await this.gameService.update({...dto, id_game})
 
-      return res.status(200).json({ message: 'Jogo atualizado com sucesso!' });
-
+      res.status(200).json({ message: 'Jogo atualizado com sucesso!' });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao atualizar jogo', error });
+      next(error);
     }
   };
 
   // Deleta o jogo pelos comandos de (admin) 
-  deleteGame = async (req: Request, res: Response): Promise<Response> => {
+  deleteGame = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { id } = req.params;
-      const id_game = parseInt(id as string);
+      const id_game = toInt(req.params.id, 0);
 
-      const result = await this.gameService.delete(id_game);
-      if(!result) return res.status(404).json({ message: 'Jogo não encontrado' });
+      const game = await this.gameService.delete(id_game);
+      if(!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME");
 
-      return res.status(200).json({ message: 'Jogo deletado com sucesso!' });
+      res.status(200).json({ message: 'Jogo deletado com sucesso!' });
     } catch (error) {
-      console.error(error);
-      return res.status(500).json({ message: 'Erro ao deletar jogo', error });
+      next(error);
     }
   };
+  
 }

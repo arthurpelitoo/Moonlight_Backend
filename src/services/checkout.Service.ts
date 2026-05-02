@@ -1,37 +1,72 @@
 import {MercadoPagoConfig,  Payment,  Preference } from "mercadopago";
-import type { CartItem, CheckoutQueryPayload, OrderQueryPayload, PurchasedItemsQueryPayload } from "../@types/index.js";
-import pool from "../config/database.js";
-import type { ResultSetHeader } from "mysql2";
 import { OrderService } from "./order.Service.js";
 import { PurchasedItemsService } from "./purchasedItems.Service.js";
-
+import type { CreateCheckoutDTO } from "../@types/checkout/checkout.dto.js";
+import type { PurchasedItemsDTO } from "../@types/purchasedItem/purchasedItem.dto.js";
+import { AppError } from "../utils/AppError.js";
+type PaymentStatus = 'approved' | 'pending' | 'canceled';
 
 export class CheckoutService{
-    private static instance: CheckoutService;
-    private orderService = OrderService.getInstance();
-    private purchasedItemsService = PurchasedItemsService.getInstance();
 
-    private constructor() {}
+    constructor(
+        private orderService: OrderService,
+        private purchasedItemsService: PurchasedItemsService
+    ) {}
 
-        static getInstance(): CheckoutService{
-            if(!CheckoutService.instance) CheckoutService.instance = new CheckoutService();
-            return CheckoutService.instance;
+        async createPreference(dto: CreateCheckoutDTO): Promise<string | undefined>{
+            for (const item of dto.items) {
+                const canBuy = await this.orderService.canPurchaseGame(dto.user.id_user, item.id_game);
+                if (!canBuy) throw new AppError(`Você já possui o jogo "${item.title}" na sua biblioteca.`, 400, "USER_ALREADY_HAVE_GAME");
+            }
+            
+            const client = this.createMercadoPagoClient();
+            const preferenceClient = new Preference(client);
+
+            const external_reference = this.generateExternalReference();
+
+            const preference = await this.createMercadoPreference(preferenceClient, dto, external_reference);
+            const id_order = await this.createOrder(dto, preference.id!, external_reference);
+
+            await this.createPurchasedItems({id_order, items: dto.items} as PurchasedItemsDTO);
+            
+            return preference.id;
         }
-        
 
-        async createPreference(query: CheckoutQueryPayload): Promise<string | undefined>{
-            const client = new MercadoPagoConfig({accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!});
-            const preference = new Preference(client);
+        async getPaymentStatus(payment_id: string): Promise<void> {
+            const client = this.createMercadoPagoClient();
 
-            const external_reference = `order_${Date.now()}`;
+            const paymentClient = new Payment(client);
+            const payment = await paymentClient.get({ id: payment_id });
 
-            const result = await preference.create({
+            const status = this.mapStatus(payment.status);
+
+            const external_reference = payment.external_reference!;
+
+            await this.orderService.updateOrderStatus({status, external_reference})
+        }
+
+        private createMercadoPagoClient(): MercadoPagoConfig {
+            return new MercadoPagoConfig({
+                accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!
+            });
+        }
+
+        private generateExternalReference(): string {
+            return `order_${Date.now()}`;
+        }
+
+        private async createMercadoPreference(
+            preference: Preference,
+            query: CreateCheckoutDTO,
+            external_reference: string
+        ) {
+            return preference.create({
                 body: {
                     payer: {
                         name: query.user.name,
-                        email: "TESTUSER8052695651117258427@testuser.com" // teste
+                        email: "TESTUSER8052695651117258427@testuser.com"
                     },
-                    items: query.items.map((item: CartItem) => ({
+                    items: query.items.map(item => ({
                         id: String(item.id_game),
                         title: item.title,
                         quantity: 1,
@@ -45,40 +80,40 @@ export class CheckoutService{
                         pending: `${process.env.NGROK_URL}/api/checkout/pending`
                     },
                     auto_return: "approved",
-                    notification_url: `${process.env.NGROK_URL}/api/checkout/webhook`,
+                    notification_url: `${process.env.NGROK_URL}/api/checkout/webhook`
                 }
             });
-            const preference_id = result.id;
-
-            const buildOrderQuery = () : OrderQueryPayload => ({ status: 'pending', preference_id, external_reference, id_user: query.user.id_user, total: query.total })
-            const id_order = await this.orderService.createOrder(buildOrderQuery());
-
-            const buildPurchasedItemsQuery = () : PurchasedItemsQueryPayload => ({id_order, items: query.items})
-            await this.purchasedItemsService.createItems(buildPurchasedItemsQuery());
-            
-            return preference_id;
         }
 
-        async getPaymentStatus(payment_id: string): Promise<void> {
-            const client = new MercadoPagoConfig({ 
-                accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN! 
+        private async createOrder(
+            query: CreateCheckoutDTO,
+            preference_id: string,
+            external_reference: string
+        ): Promise<number> {
+            return this.orderService.createOrder({
+                status: 'pending',
+                preference_id,
+                external_reference,
+                id_user: query.user.id_user,
+                total: query.total
             });
+        }
 
-            const paymentClient = new Payment(client);
-            const payment = await paymentClient.get({ id: payment_id });
+        private async createPurchasedItems(query: PurchasedItemsDTO) {
+            return this.purchasedItemsService.createItems({
+                id_order: query.id_order,
+                items: query.items
+            });
+        }
 
-            const statusMap: Record<string, string> = {
+        private mapStatus(status?: string): PaymentStatus {
+            const map: Record<string, PaymentStatus> = {
                 approved: 'approved',
                 pending:  'pending',
                 rejected: 'canceled',
                 cancelled:'canceled',
             };
 
-            const novoStatus = statusMap[payment.status ?? ''] ?? 'pending';
-            const external_reference = payment.external_reference;
-
-            const buildOrderQuery = () : Omit<OrderQueryPayload, "preference_id" | "total" > => ({external_reference, status: novoStatus})
-
-            await this.orderService.updateOrder(buildOrderQuery())
+            return map[status ?? ''] ?? 'pending';
         }
 }

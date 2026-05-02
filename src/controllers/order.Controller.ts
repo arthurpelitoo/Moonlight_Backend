@@ -1,187 +1,98 @@
-import type { Request, Response } from 'express';
-import pool from '../config/database.js';
+import type { NextFunction, Request, Response } from 'express';
+import type { OrderService } from '../services/order.Service.js';
+import type { CreateOrderDTO, UpdateOrderDTO } from '../@types/order/dto/order.input.dto.js';
+import { AppError } from '../utils/AppError.js';
+import { toInt } from '../utils/queryParser.js';
 
-//GET ALL, Pega todos os pedidos (admin)
-export const getAllOrders = async (req: Request, res: Response) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT 
-        o.id_order, o.order_date, o.total, o.status,
-        u.name AS user_name, u.email AS user_email
-      FROM \`order\` o
-      INNER JOIN user u ON o.id_user = u.id_user
-      ORDER BY o.order_date DESC
-    `);
 
-    return res.status(200).json(rows);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao buscar pedidos', error });
-  }
-};
+export class OrderController{
 
-//Get orders (usuário logado)
-export const getMyOrders = async (req: Request, res: Response) => {
-  try {
-    const id_User = req.User!.id_User;
+  constructor(private orderService: OrderService){} 
 
-    const [rows] = await pool.query(`
-      SELECT 
-        o.id_order, o.order_date, o.total, o.status,
-        g.title AS game_title, g.image AS game_image,
-        pi.price AS item_price, gk.activation_key
-      FROM \`order\` o
-      INNER JOIN purchased_items pi ON o.id_order = pi.id_order
-      INNER JOIN game g ON pi.id_game = g.id_game
-      INNER JOIN game_key gk ON pi.id_key = gk.id_key
-      WHERE o.id_user = ?
-      ORDER BY o.order_date DESC
-    `, [id_User]);
+      getAllOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+          const orders = await this.orderService.findAll();
+          if (!orders) throw new AppError("Pedidos paginados não encontrados", 404, "NOT_FOUND_PAG_ORDERS");
 
-    return res.status(200).json(rows);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao buscar seus pedidos', error });
-  }
-};
+          res.status(200).json(orders);
+        } catch (error) {
+          next(error);
+        }
+      };
 
-//Get pelo Id do pedido
-export const getOrderById = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const id_User = req.User!.id_User;
-    const UserType = req.User!.type;
+      getMyOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+          try {
+            const id_user = req.user?.id_user;
 
-    const [rows] = await pool.query(`
-      SELECT 
-        o.id_order, o.order_date, o.total, o.status,
-        u.name AS user_name, u.email AS user_email,
-        g.title AS game_title, g.image AS game_image,
-        pi.price AS item_price, gk.activation_key
-      FROM \`order\` o
-      INNER JOIN user u ON o.id_user = u.id_user
-      INNER JOIN purchased_items pi ON o.id_order = pi.id_order
-      INNER JOIN game g ON pi.id_game = g.id_game
-      INNER JOIN game_key gk ON pi.id_key = gk.id_key
-      WHERE o.id_order = ?
-    `, [id]);
+            const orders = await this.orderService.findMyOrders(id_user!);
+            if (!orders) throw new AppError("Pedidos não encontrados", 404, "NOT_FOUND_ORDERS");
 
-    const order = (rows as any[])[0];
+            res.status(200).json(orders);
+          } catch (error) {
+            next(error);
+          }
+      };
 
-    if (!order) {
-      return res.status(404).json({ message: 'Pedido não encontrado' });
-    }
+      getOrderById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+          try {
+            const id_order = toInt(req.params.id, 0);
+            const order = await this.orderService.findOrderById(id_order);
+            if (!order) throw new AppError("Pedido não encontrado", 404, "NOT_FOUND_ORDER");
 
-//Usuário comum só pode ver o próprio pedido
-    if (UserType !== 'admin' && order.id_User !== id_User) {
-      return res.status(403).json({ message: 'Acesso negado' });
-    }
+            res.status(200).json(order);
+          } catch (error) {
+            next(error);
+          }
+      };
 
-    return res.status(200).json(rows);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao buscar pedido', error });
-  }
-};
+      getUserLibrary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+          try {
+            const id_user = req.user!.id_user;
 
-//Criar pedido(usuário logado)
-export const createOrder = async (req: Request, res: Response) => {
-  try {
-    const id_User = req.User!.id_User;
-    const { games, preference_id, external_reference } = req.body;
+            const games = await this.orderService.findUserLibrary(id_user);
+            if (!games) throw new AppError("Biblioteca vazia", 404, "EMPTY_LIBRARY");
 
-    if (!games || !Array.isArray(games) || games.length === 0) {
-      return res.status(400).json({ message: 'Informe ao menos um jogo' });
-    }
+            res.status(200).json(games);
+          } catch (error) {
+            next(error);
+          }
+      };
 
-    if (!preference_id || !external_reference) {
-      return res.status(400).json({ message: 'preference_id e external_reference são obrigatórios' });
-    }
+      canUserPurchase = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+          try {
+            const id_user = req.user!.id_user;
+            const id_game = toInt(req.query.id_game, 0);
 
-//Calcula total
-    let total = 0;
-    for (const id_game of games) {
-      const [rows] = await pool.query(
-        'SELECT price, stock_available FROM game WHERE id_game = ? AND active = 1',
-        [id_game]
-      );
-      const game = (rows as any[])[0];
-
-      if (!game) {
-        return res.status(404).json({ message: `Jogo ${id_game} não encontrado` });
-      }
-      if (game.stock_available <= 0) {
-        return res.status(400).json({ message: `Jogo ${id_game} sem estoque` });
+            const canPurchase = await this.orderService.canPurchaseGame(id_user, id_game)
+            res.status(200).json({canPurchase})
+          } catch(error) {
+            next(error);
+          }
       }
 
-      total += parseFloat(game.price);
-    }
+      createOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+          try {
+              const id_user = req.user!.id_user;
+              const dto = req.body as CreateOrderDTO;
 
-//Cria o pedido
-    const [orderResult] = await pool.query(
-      'INSERT INTO `order` (id_user, order_date, total, preference_id, external_reference, status) VALUES (?, NOW(), ?, ?, ?, ?)',
-      [id_User, total, preference_id, external_reference, 'pending']
-    );
+              await this.orderService.createOrder({...dto, id_user});
 
-    const id_order = (orderResult as any).insertId;
+              res.status(201).json({ message: 'Pedido criado com sucesso!'});
+          } catch (error) {
+            next(error);
+          }
+      };
 
-//Vincula jogos e chaves de pedido
-    for (const id_game of games) {
-      const [keyRows] = await pool.query(
-        'SELECT id_key FROM game_key WHERE id_game = ? AND status = "available" LIMIT 1',
-        [id_game]
-      );
-      const key = (keyRows as any[])[0];
+      updateOrderStatus = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+          const dto = req.body as UpdateOrderDTO;
 
-      if (!key) {
-        return res.status(400).json({ message: `Sem chave disponível para o jogo ${id_game}` });
-      }
+          const updated = await this.orderService.updateOrderStatus(dto);
+          if (!updated) throw new AppError("Pedido não encontrado", 404, "ORDER_NOT_FOUND");
 
-      const [priceRows] = await pool.query('SELECT price FROM game WHERE id_game = ?', [id_game]);
-      const price = (priceRows as any[])[0].price;
-
-      await pool.query(
-        'INSERT INTO purchased_items (id_order, id_game, id_key, price) VALUES (?, ?, ?, ?)',
-        [id_order, id_game, key.id_key, price]
-      );
-
-//Reserva a chave — trigger atualiza o stock automaticamente
-      await pool.query(
-        'UPDATE game_key SET status = "reserved" WHERE id_key = ?',
-        [key.id_key]
-      );
-    }
-
-    return res.status(201).json({ message: 'Pedido criado com sucesso!', id_order, total });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao criar pedido', error });
-  }
-};
-
-//Atualiza o status de pedido (admin) ==========
-export const updateOrderStatus = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    const validStatus = ['pending', 'approved', 'canceled'];
-    if (!status || !validStatus.includes(status)) {
-      return res.status(400).json({ message: 'Status inválido. Use: pending, approved ou canceled' });
-    }
-
-    const [result] = await pool.query(
-      'UPDATE `order` SET status = ? WHERE id_order = ?',
-      [status, id]
-    );
-
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: 'Pedido não encontrado' });
-    }
-
-    return res.status(200).json({ message: 'Status do pedido atualizado com sucesso!' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao atualizar pedido', error });
-  }
-};
+          res.status(200).json({ message: 'Status de Pedido atualizado com sucesso!' });
+        } catch (error) {
+          next(error);
+        }
+      };
+}

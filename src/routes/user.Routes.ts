@@ -1,11 +1,7 @@
 import { Router } from 'express';
 import authMiddleware from '../middlewares/auth.Middleware.js';
-import { UserService } from '../services/user.Service.js';
-import { UserController } from '../controllers/user.Controller.js';
 import { adminMiddleware } from '../middlewares/admin.Middleware.js';
-
-const userService = UserService.getInstance();
-const userController = new UserController(userService);
+import { userController } from '../config/container.js';
 
 const router = Router();
 

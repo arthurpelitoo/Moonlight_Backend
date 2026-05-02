@@ -3,10 +3,7 @@ import { CategoryController } from '../controllers/category.Controller.js';
 import { authMiddleware } from '../middlewares/auth.Middleware.js';
 import { adminMiddleware } from '../middlewares/admin.Middleware.js';
 import { CategoryService } from '../services/category.Service.js';
-
-const categoryService = CategoryService.getInstance();
-const categoryController = new CategoryController(categoryService);
-
+import { categoryController } from '../config/container.js';
 const router = Router();
 
 router.get('/pag', categoryController.getCategoriesPaginated); // Usuário Lista as categorias

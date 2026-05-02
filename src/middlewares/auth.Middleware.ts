@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import type { Request, Response, NextFunction } from 'express';
-import { UserService } from '../services/user.Service.js';
+import type { NextFunction, Request, Response } from 'express';
+import { userController, userService } from '../config/container.js';
 
 dotenv.config();
 
@@ -9,8 +9,6 @@ interface JwtPayload {
   id_user: number;
   type: "admin" | "customer";
 }
-
-const userService = UserService.getInstance();
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization;

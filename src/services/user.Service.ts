@@ -1,150 +1,103 @@
-// services/UserService.ts
-import pool from '../config/database.js';
-import type { UserEntity } from '../models/user.js';
-import type { ResultSetHeader, RowDataPacket } from 'mysql2';
-import { generateHash } from '../utils/hash.js';
-import type { PaginatedResponse, RegisterUserQueryPayload, UpdateMeUserQueryPayload, UserDTO, UserPaginatedQueryPayload, UserQueryPayload } from '../@types/index.js';
-import { cpfCleaner } from '../utils/validators.js';
+import type { PaginatedResponse } from '../@types/common/pagination.js';
+import bcrypt from 'bcryptjs';
+import type { RegisterAuthDTO } from '../@types/auth/auth.dto.js';
+import { UserRepository } from '../repositories/UserRepository.js';
+import type { CreateUserDTO, GetUsersPaginatedDTO, UpdateMeDTO, UpdateUserDTO } from '../@types/user/dto/user.input.dto.js';
+import type { UserResponseDTO } from '../@types/user/dto/user.output.dto.js';
+import { buildSqlFilters } from '../builders/sql/sqlFilterBuilder.js';
+import { userFilterConfig } from '../query/filters/userFilterConfig.js';
+import { AppError } from '../utils/AppError.js';
+import { validateRegister, validateUpdateMe, validateUser } from '../validators/user.validator.js';
 
 export class UserService {
-  private static instance: UserService;
 
-  private constructor() {}
+  constructor(private userRepository: UserRepository) {}
 
-  static getInstance(): UserService{
-      if(!UserService.instance){
-          UserService.instance = new UserService();
-      }
-      return UserService.instance;
+  async findAllPaginated(query: GetUsersPaginatedDTO): Promise<PaginatedResponse<UserResponseDTO>> {
+
+    const page = query.page || 1;
+    const limit = query.limit || 5;
+    const offset = (page - 1) * limit;
+
+    const { where, params } = buildSqlFilters(query, userFilterConfig);
+
+    const data = await this.userRepository.findAllPaginated({filters: {dbParams: params, where }, pagination: {limit, offset}})
+    const total = await this.userRepository.count({dbParams: params, where});
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  async findAllPaginated(query: UserPaginatedQueryPayload): Promise<PaginatedResponse<UserDTO>> {
-    const offset = (query.page - 1) * query.limit; //itens a pular pra puxar
-
-    const {params, where} = this.buildFilters(query);
-
-    const countParams = [...params];
-
-    params.push(query.limit, offset);
-
-    const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT id_user, name, email, cpf, type 
-        FROM user u
-        ${where}
-        GROUP BY u.id_user
-        ORDER BY id_user
-        ASC LIMIT ? OFFSET ?`, 
-        params
-    );
-
-    const [countRows] = await pool.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as total FROM user u ${where}`,
-        countParams
-    );
-
-    return {
-        data: rows as UserDTO[],
-        total: countRows[0]?.total ?? 0,
-        page: query.page,
-        totalPages: Math.ceil((countRows[0]?.total ?? 0) / query.limit)
-    };
+  async findAll(): Promise<UserResponseDTO[]>{
+    return this.userRepository.findAll();
   }
 
-  async findAll(): Promise<UserEntity[] | null>{
-      const [rows] = await pool.query<RowDataPacket[]>(`
-        SELECT id_user, name, email, cpf, type 
-        FROM user u
-        GROUP BY u.id_user
-        ORDER BY id_user
-      `);
-
-      return rows as UserEntity[] ?? null;
+  async findById(id_user: number): Promise<UserResponseDTO | null> {
+    return this.userRepository.findById(id_user);
   }
 
-  async findById(id_user: number): Promise<UserEntity | null> {
-    const [row] = await pool.query<RowDataPacket[]>(
-      'SELECT id_user, name, email, cpf, type FROM user WHERE id_user = ?',
-      [id_user]
-    );
-    const user = row as UserEntity[];
-    return user[0] ?? null;
+  async create(dto: CreateUserDTO): Promise<number> {
+    validateUser(dto);
+
+    const emailExists = await this.emailAlreadyExists(dto.email);
+    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+
+    const cleanCpf = this.cpfCleaner(dto.cpf);
+    const hashedPassword = await this.generateHash(dto.password!);
+
+    return this.userRepository.create({...dto, cpf: cleanCpf, password: hashedPassword});
   }
 
-  async create(query: UserQueryPayload): Promise<number> {
-    const cleanCpf = cpfCleaner(query.cpf);
-    const hashedPassword = await generateHash(query.password!);
-    const [result] = await pool.query<ResultSetHeader>(
-      'INSERT INTO user (name, email, password, cpf, type) VALUES (?, ?, ?, ?, ?)',
-      [query.name, query.email, hashedPassword, cleanCpf, query.type]
-    );
-    return result.insertId;
-  }
+  async update(dto: UpdateUserDTO): Promise<boolean> {
+    validateUser(dto);
 
-  async update(query: UserQueryPayload, id_user: number): Promise<boolean> {
-    const cleanCpf = cpfCleaner(query.cpf);
-    const hashedPassword = await generateHash(query.password!);
-    const [result] = await pool.query<ResultSetHeader>(
-      'UPDATE user SET name = ?, email = ?, password = ?, cpf = ?, type = ? WHERE id_user = ?',
-      [query.name, query.email, hashedPassword, cleanCpf, query.type, id_user]
-    );
-    return result.affectedRows > 0;
+    const emailExists = await this.emailTakenByAnotherUser(dto.email, dto.id_user);
+    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+
+    const cleanCpf = this.cpfCleaner(dto.cpf);
+    const hashedPassword = await this.generateHash(dto.password!);
+    
+    return this.userRepository.update({...dto, cpf: cleanCpf, password: hashedPassword})
   }
 
   async delete(id_user: number): Promise<boolean> {
-    const [result] = await pool.query<ResultSetHeader>('DELETE FROM user WHERE id_user = ?', [id_user]);
-    return result.affectedRows >= 0;
+    return this.userRepository.delete(id_user);
   }
 
-  async register(query: RegisterUserQueryPayload): Promise<void>{ // registro que o cliente pode fazer
-    const cleanCpf = cpfCleaner(query.cpf);
-    const hashedPassword = await generateHash(query.password!);
+  async register(dto: RegisterAuthDTO): Promise<number>{ // registro que o cliente pode fazer
+    validateRegister(dto);
 
-    await pool.query<ResultSetHeader>(
-        'INSERT INTO user (name, email, password, cpf, type) VALUES (?, ?, ?, ?, ?)',
-        [query.name, query.email, hashedPassword, cleanCpf, 'customer']
-    );  
+    const emailExists = await this.emailAlreadyExists(dto.email);
+    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+
+    const cleanCpf = this.cpfCleaner(dto.cpf);
+    const hashedPassword = await this.generateHash(dto.password!);
+
+    return this.userRepository.create({...dto, cpf: cleanCpf, password: hashedPassword, type: "customer"});
   }
 
-  async updateMe(query: UpdateMeUserQueryPayload, id_user: number): Promise<boolean> { // edição que o cliente pode fazer
-    const cleanCpf = cpfCleaner(query.cpf);
-    const hashedPassword = await generateHash(query.password!);
-    const [result] = await pool.query<ResultSetHeader>(
-      'UPDATE user SET name = ?, password = ?, cpf = ? WHERE id_user = ?',
-      [query.name, hashedPassword, cleanCpf, id_user]
-    );
-    return result.affectedRows > 0;
+  async updateMe(dto: UpdateMeDTO): Promise<boolean> { // edição que o cliente pode fazer
+    validateUpdateMe(dto);
+
+    const cleanCpf = this.cpfCleaner(dto.cpf);
+    const hashedPassword = await this.generateHash(dto.password!);
+    
+    return this.userRepository.updateMe({...dto, cpf: cleanCpf, password: hashedPassword});
   }
 
   async emailAlreadyExists(email: string): Promise<boolean>{
-      const [rows] = await pool.query<RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM user WHERE email = ?',
-        [email]
-      );
+      return this.userRepository.emailAlreadyExists(email);
+  };
 
-      return (rows[0]?.count ?? 0) > 0;
+  async emailTakenByAnotherUser(email: string, currentUserId: number){
+      return this.userRepository.emailTakenByAnotherUser(email, currentUserId);
   }
 
-  private buildFilters(query: UserPaginatedQueryPayload): { where: string; params: unknown[] } {
-      let where = 'WHERE 1=1';
-      const params = [];
+  private cpfCleaner = (cpf: string): string => {
+    return cpf.replace(/[.\-]/g, '');
+  };
 
-      if (query?.name) {
-          where += ' AND u.name LIKE ?';
-          params.push(`%${query?.name}%`);
-      }
-      if (query?.email) {
-          where += ' AND u.email LIKE ?';
-          params.push(`%${query?.email}%`);
-      }
-      if(query?.cpf) {
-          where += ' AND u.cpf = ?';
-          params.push(query?.cpf);
-      }
-      if(query?.type) {
-          where += ' AND u.type = ?';
-          params.push(query.type);
-      }
-
-      return { where, params };
+  private generateHash = async (password: string): Promise<string> => {
+    return await bcrypt.hash(password, 12);
   }
+
 }

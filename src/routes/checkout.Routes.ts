@@ -2,9 +2,8 @@ import express from 'express';
 import { CheckoutController } from '../controllers/checkout.Controller.js';
 import { CheckoutService } from '../services/checkout.Service.js';
 import authMiddleware from '../middlewares/auth.Middleware.js';
-
-const checkoutService = CheckoutService.getInstance();
-const checkoutController = new CheckoutController(checkoutService);
+import { OrderService } from '../services/order.Service.js';
+import { checkoutController } from '../config/container.js';
 
 const router = express.Router();
 
