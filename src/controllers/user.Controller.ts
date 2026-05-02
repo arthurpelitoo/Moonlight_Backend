@@ -2,8 +2,8 @@ import type { UserService } from '../services/user.Service.js';
 import type { NextFunction, Request, Response } from 'express';
 import type { CreateUserDTO, GetUsersPaginatedDTO, UpdateMeDTO, UpdateUserDTO } from '../@types/user/dto/user.input.dto.js';
 import { AppError } from '../utils/AppError.js';
-import { parseUserQuery } from '../query/filters/parsers/userParser.js';
 import { toInt } from '../utils/queryParser.js';
+import { parseUserQuery } from '../query/parsers/userParser.js';
 
 
 export class UserController{

@@ -2,8 +2,8 @@ import type { NextFunction, Request, Response } from 'express';
 import type { CategoryService } from '../services/category.Service.js';
 import type { CreateCategoryDTO, UpdateCategoryDTO } from '../@types/category/dto/category.input.dto.js';
 import { AppError } from '../utils/AppError.js';
-import { parseCategoriesQuery } from '../query/filters/parsers/categoryParser.js';
 import { toInt } from '../utils/queryParser.js';
+import { parseCategoriesQuery } from '../query/parsers/categoryParser.js';
 
 export class CategoryController{
 

@@ -4,10 +4,9 @@ import type { GameService } from '../services/game.Service.js';
 import type { ResultSetHeader } from 'mysql2';
 import type { GameQueryPayload } from '../@types/game/game.payload.js';
 import type { CreateGameDTO, GetGamesPaginatedDTO, UpdateGameDTO } from '../@types/game/dto/game.input.dto.js';
-import { isPriceValid } from '../utils/Validators/isPriceValid.js';
 import { AppError } from '../utils/AppError.js';
 import { toBoolean, toFloat, toInt, toString } from '../utils/queryParser.js';
-import { parseGameQuery } from '../query/filters/parsers/gameParser.js';
+import { parseGameQuery } from '../query/parsers/gameParser.js';
 
 export class GameController{
 
