@@ -31,7 +31,7 @@ const { AuthService } = await import("../../services/auth.Service.js");
 
 describe("AuthService - Unitário", () => {
   const mockUserRepository = {
-    findByEmail: jest.fn<() => Promise<AuthResponseDTO | null>>(),
+    findByEmail: jest.fn<(email: string) => Promise<AuthResponseDTO | null>>(),
   } as unknown as UserRepository;
   // cria um objeto fake que imita o UserRepository.
   // jest.fn<() => Promise<AuthResponseDTO | null>>() cria uma função monitorada

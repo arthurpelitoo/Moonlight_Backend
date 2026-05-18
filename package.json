@@ -1,6 +1,6 @@
 {
-  "name": "moolight_back-end",
-  "version": "1.0.0",
+  "name": "moonlight_backend",
+  "version": "1.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
