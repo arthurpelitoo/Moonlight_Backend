@@ -64,12 +64,13 @@ export class UserController{
 
   updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const dto = req.body as UpdateUserDTO; 
+      const dto = req.body as UpdateUserDTO;
 
       const id_user = toInt(req.params.id, 0);
       if (!id_user) throw new AppError("ID não enviado", 400, "ID_NOT_SENT_OR_INVALID");
 
-      await this.userService.update({...dto, id_user});
+      const user = await this.userService.update({ ...dto, id_user });
+      if (!user) throw new AppError("Usuário não encontrado", 404, "NOT_FOUND_USER_TO_UPDATE");
 
       res.status(200).json({ message: 'Usuário atualizado com sucesso!' });
     } catch (error) {
@@ -98,9 +99,9 @@ export class UserController{
     try {
       const id_user = toInt(req.params.id, 0);
       if (!id_user) throw new AppError("ID não enviado", 400, "ID_NOT_SENT_OR_INVALID");
-      
-      const result = await this.userService.delete(id_user);
-      if (!result) throw new AppError("Usuário não encontrado", 404, "NOT_FOUND_USER_TO_DELETE");
+
+      const user = await this.userService.delete(id_user);
+      if (!user) throw new AppError("Usuário não encontrado", 404, "NOT_FOUND_USER_TO_DELETE");
 
       res.status(200).json({ message: 'Usuário deletado com sucesso!' });
     } catch (error) {
