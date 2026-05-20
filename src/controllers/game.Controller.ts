@@ -85,11 +85,10 @@ export class GameController {
   ): Promise<void> => {
     try {
       const gameId = toInt(req.params.id, 0);
-      if (!gameId) throw new AppError("ID inválido", 400, "INVALID_ID");
+      if (!gameId) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
 
       const game = await this.gameService.findById(gameId);
-      if (!game)
-        throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME");
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_BY_ID");
 
       res.status(200).json(game);
     } catch (error) {
@@ -121,15 +120,14 @@ export class GameController {
     next: NextFunction,
   ): Promise<void> => {
     try {
-      const id_game = parseInt(req.params.id as string);
+      const id_game = toInt(req.params.id, 0);
+      if (!id_game) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
       const dto = req.body as UpdateGameDTO;
 
-      // Trigger de auditoria de preço dispara automaticamente no banco
-      await pool.query<ResultSetHeader>("SET @usuario_logado = ?", [
-        req.user?.id_user,
-      ]);
+      await pool.query<ResultSetHeader>("SET @usuario_logado = ?", [req.user?.id_user,]); // Trigger de auditoria de preço dispara automaticamente no banco
 
-      await this.gameService.update({ ...dto, id_game });
+      const game = await this.gameService.update({ ...dto, id_game });
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_TO_UPDATE");
 
       res.status(200).json({ message: "Jogo atualizado com sucesso!" });
     } catch (error) {
@@ -145,10 +143,10 @@ export class GameController {
   ): Promise<void> => {
     try {
       const id_game = toInt(req.params.id, 0);
+      if (!id_game) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
 
       const game = await this.gameService.delete(id_game);
-      if (!game)
-        throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME");
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_TO_DELETE");
 
       res.status(200).json({ message: "Jogo deletado com sucesso!" });
     } catch (error) {
