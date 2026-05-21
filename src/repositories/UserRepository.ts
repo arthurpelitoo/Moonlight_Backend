@@ -9,10 +9,10 @@ export class UserRepository{
 
     async findAllPaginated({filters, pagination}: QueryOptions): Promise<UserWithoutPassword[]>{
         const [rows] = await pool.query<UserRow[]>(`
-            SELECT id_user, name, email, cpf, type FROM user
+            SELECT id_user, name, email, cpf, type FROM user u
             ${filters.where}
             ORDER BY id_user
-            ASC LIMIT ? OFFSET ?`, 
+            ASC LIMIT ? OFFSET ?`,
             [...filters.dbParams, pagination.limit, pagination.offset]);
 
         return rows;
@@ -20,11 +20,11 @@ export class UserRepository{
 
     async findAll(): Promise<UserWithoutPassword[]>{
         const [rows] = await pool.query<UserRow[]>(`
-            SELECT id_user, name, email, cpf, type 
+            SELECT id_user, name, email, cpf, type
             FROM user
             ORDER BY id_user
             `);
-        
+
         return rows;
     }
 
@@ -43,7 +43,7 @@ export class UserRepository{
             [email]
         );
 
-        
+
         return rows[0] ?? null;
     }
 
@@ -54,7 +54,7 @@ export class UserRepository{
         );
         return result.insertId;
     }
-    
+
     async update(query: UpdateUserDTO): Promise<boolean>{
         const [result] = await pool.query<ResultSetHeader>(
             'UPDATE user SET name = ?, email = ?, password = ?, cpf = ?, type = ? WHERE id_user = ?',
@@ -102,7 +102,7 @@ export class UserRepository{
 
     async count({ where, dbParams }: FilterParams): Promise<number> {
         const [rows] = await pool.query<UserCountRows[]>(
-            `SELECT COUNT(*) as total FROM user ${where}`,
+            `SELECT COUNT(*) as total FROM user u ${where}`,
             dbParams
         );
 
