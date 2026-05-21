@@ -36,7 +36,7 @@ describe("AuthController - Integração", () => {
     it("deve retornar JWT e status 200 para login válido", async () => {
       const response = await request(app)
         .post("/api/auth/login")
-        .send);
+        .send(login);
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty("token");
       expect(typeof response.body.token).toBe("string");
