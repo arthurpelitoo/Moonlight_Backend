@@ -7,6 +7,7 @@ const router = Router();
 
 router.get('/my-orders', authMiddleware, orderController.getMyOrders); // Usuário logado
 router.get('/my-library', authMiddleware, orderController.getUserLibrary);
+router.get('/can-user-purchase', authMiddleware, orderController.canUserPurchase);
 router.get('/', authMiddleware, adminMiddleware, orderController.getAllOrders); // Admin
 router.get('/:id', authMiddleware, adminMiddleware, orderController.getOrderById); // Admin ou dono
 router.post('/', authMiddleware, orderController.createOrder); // Usuário logado

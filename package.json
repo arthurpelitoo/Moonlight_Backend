@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "name": "moonlight_backend",
   "version": "1.0.1",
+=======
+  "name": "moolight_back-end",
+  "version": "1.1.0",
+>>>>>>> ba8441d (feat: função que permite saber se o usuario pode comprar um item, no caso de já possuir-lo ou não.)
   "description": "",
   "main": "index.js",
   "scripts": {
