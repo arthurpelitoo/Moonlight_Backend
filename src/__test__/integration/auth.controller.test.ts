@@ -45,7 +45,7 @@ describe("AuthController - Integração", () => {
     it("deve retornar 401 para senha incorreta", async () => {
       const response = await request(app)
         .post("/api/auth/login")
-        .send({ email: "juizei@gmail.com", password: "errada" });
+        .send({ email: "juizei@gmail.com", password: "Senha123Errada" });
       expect(response.status).toBe(401);
       expect(response.body.message).toBe("Email ou senha inválidos");
     });
