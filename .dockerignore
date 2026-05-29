@@ -1,0 +1,12 @@
+README.md
+documentacao.md
+TODO.md
+node_modules/
+dist/
+.env
+.example.env
+.git/
+.gitignore
+src/__test__/
+jest.config.cjs
+databaseinsert.sql
