@@ -1,9 +1,10 @@
 {
-  "name": "moolight_back-end",
-  "version": "1.1.0",
+  "name": "moonlight_backend",
+  "version": "1.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc",
     "dev": "tsx watch src/servers/server.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:watch": "jest --watch",

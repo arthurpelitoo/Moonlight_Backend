@@ -1,5 +1,3 @@
-import type { GameEntity } from "../../models/game.js";
-import type { PaginatedQuery } from "../common/pagination.js";
 
 export interface GameQueryPayload {
   title: string;
