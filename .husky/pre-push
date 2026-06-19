@@ -1,0 +1,12 @@
+#!/bin/sh
+echo "🧪 Rodando testes antes do push..."
+npm test
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Testes falharam! Push bloqueado."
+  echo ""
+  exit 1
+fi
+
+echo "✅ Testes passaram!"
