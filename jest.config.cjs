@@ -1,6 +1,7 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   preset: 'ts-jest/presets/default-esm', // Preset específico para ESM
+  testPathIgnorePatterns: ['<rootDir>/dist/'],
   testEnvironment: 'node',
   rootDir: "./",
   extensionsToTreatAsEsm: ['.ts'],
