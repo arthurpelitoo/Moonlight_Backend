@@ -1,13 +1,16 @@
 import { Router } from 'express';
-import { getUsers, getUserById, updateUser, createUser, deleteUser } from '../controllers/user.Controller.js';
-import { authMiddleware } from '../middlewares/auth.Middleware.js';
+import authMiddleware from '../middlewares/auth.Middleware.js';
+import { adminMiddleware } from '../middlewares/admin.Middleware.js';
+import { userController } from '../config/container.js';
 
 const router = Router();
 
-router.get('/', authMiddleware, getUsers);        // Lista todos
-router.get('/:id', authMiddleware, getUserById);  // Busca um por ID
-router.post('/', createUser);                     // Cria usuário (sem auth)
-router.put('/:id', authMiddleware, updateUser);   // Atualiza
-router.delete('/:id', authMiddleware, deleteUser);// Deleta
+router.get('/pag', authMiddleware, adminMiddleware, userController.getUsersPaginated);
+router.get('/:id', authMiddleware, adminMiddleware, userController.getUserById);
+router.get('/', authMiddleware, adminMiddleware, userController.getUsers);
+router.post('/', authMiddleware, adminMiddleware, userController.createUser);
+router.put('/me', authMiddleware, userController.updateMe);
+router.put('/:id', authMiddleware, adminMiddleware, userController.updateUser);
+router.delete('/:id', authMiddleware, adminMiddleware, userController.deleteUser);
 
 export default router;

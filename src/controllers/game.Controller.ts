@@ -1,141 +1,156 @@
-import type { Request, Response } from 'express';
-import pool from '../config/database.js';
+import type { NextFunction, Request, Response } from "express";
+import pool from "../config/database.js";
+import type { GameService } from "../services/game.Service.js";
+import type { ResultSetHeader } from "mysql2";
+import type { GameQueryPayload } from "../@types/game/game.payload.js";
+import type {
+  CreateGameDTO,
+  GetGamesPaginatedDTO,
+  UpdateGameDTO,
+} from "../@types/game/dto/game.input.dto.js";
+import { AppError } from "../utils/AppError.js";
+import { toBoolean, toFloat, toInt, toString } from "../utils/queryParser.js";
+import { parseGameQuery } from "../query/parsers/gameParser.js";
 
-// get/lista os jogos pelas descrições mostradas no card
-export const getGames = async (req: Request, res: Response) => {
-  try {
-    const [rows] = await pool.query(`
-      SELECT 
-        g.id_game, g.title, g.description, g.price,
-        g.image, g.link, g.launch_date, g.active, g.stock_available,
-        GROUP_CONCAT(c.name) AS categories
-      FROM game g
-      LEFT JOIN game_category gc ON g.id_game = gc.id_game
-      LEFT JOIN category c ON gc.id_category = c.id_category
-      WHERE g.active = 1
-      GROUP BY g.id_game
-    `);
+export class GameController {
+  constructor(private gameService: GameService) {}
 
-    return res.status(200).json(rows);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao buscar jogos', error });
-  }
-};
+  getGamesPaginated = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const games = await this.gameService.findAllPaginated(
+        parseGameQuery(req.query),
+      );
+      if (!games)
+        throw new AppError(
+          "Jogos paginados não encontrados",
+          404,
+          "NOT_FOUND_GAMES_PAG",
+        );
 
-// busca os jogos pelo seu id
-export const getGameById = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const [rows] = await pool.query(`
-      SELECT 
-        g.id_game, g.title, g.description, g.price,
-        g.image, g.link, g.launch_date, g.active, g.stock_available,
-        GROUP_CONCAT(c.name) AS categories
-      FROM game g
-      LEFT JOIN game_category gc ON g.id_game = gc.id_game
-      LEFT JOIN category c ON gc.id_category = c.id_category
-      WHERE g.id_game = ?
-      GROUP BY g.id_game
-    `, [id]);
-
-    const game = (rows as any[])[0];
-
-    if (!game) {
-      return res.status(404).json({ message: 'Jogo não encontrado' });
+      res.status(200).json(games);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    return res.status(200).json(game);
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao buscar jogo', error });
-  }
-};
+  getGamesAdminPaginated = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const games = await this.gameService.findAllPaginated({
+        ...parseGameQuery(req.query),
+        active: toBoolean(req.query.active),
+        admin: true,
+      });
+      if (!games)
+        throw new AppError(
+          "Jogos paginados não encontrados",
+          404,
+          "NOT_FOUND_GAMES_PAG_ADMIN",
+        );
 
-// Cria os jogos pelo comando do (admin) 
-export const createGame = async (req: Request, res: Response) => {
-  try {
-    const { title, description, price, image, link, launch_date, active, stock_available, categories } = req.body;
-
-    if (!title || !price || !launch_date || active === undefined || stock_available === undefined) {
-      return res.status(400).json({ message: 'title, price, launch_date, active e stock_available são obrigatórios' });
+      res.status(200).json(games);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    const [result] = await pool.query(
-      `INSERT INTO game (title, description, price, image, link, launch_date, active, stock_available)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [title, description, price, image, link, launch_date, active, stock_available]
-    );
+  getGames = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const games = await this.gameService.findAll();
+      if (!games)
+        throw new AppError("Jogos não encontrados", 404, "NOT_FOUND_GAMES");
 
-    const newGameId = (result as any).insertId;
-
-    // Vincula categorias se enviadas
-    if (categories && Array.isArray(categories) && categories.length > 0) {
-      const categoryValues = categories.map((id_category: number) => [newGameId, id_category]);
-      await pool.query('INSERT INTO game_category (id_game, id_category) VALUES ?', [categoryValues]);
+      res.status(200).json(games);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    return res.status(201).json({ message: 'Jogo criado com sucesso!', id_game: newGameId });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao criar jogo', error });
-  }
-};
+  // busca os jogos pelo seu id
+  getGameById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const gameId = toInt(req.params.id, 0);
+      if (!gameId) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
 
-// atyaliza o jogo pelos comandos de um (Admin)
-export const updateGame = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { title, description, price, image, link, launch_date, active, stock_available, categories } = req.body;
+      const game = await this.gameService.findById(gameId);
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_BY_ID");
 
-    if (!title || !price || !launch_date || active === undefined || stock_available === undefined) {
-      return res.status(400).json({ message: 'title, price, launch_date, active e stock_available são obrigatórios' });
+      res.status(200).json(game);
+    } catch (error) {
+      next(error);
     }
+  };
 
-    // Trigger de auditoria de preço dispara automaticamente no banco
-    await pool.query('SET @usuario_logado = ?', [req.user?.id_user]);
+  // Cria os jogos pelo comando do (admin)
+  createGame = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const dto = req.body as CreateGameDTO;
 
-    const [result] = await pool.query(
-      `UPDATE game SET title = ?, description = ?, price = ?, image = ?, link = ?,
-       launch_date = ?, active = ?, stock_available = ? WHERE id_game = ?`,
-      [title, description, price, image, link, launch_date, active, stock_available, id]
-    );
+      await this.gameService.create(dto);
 
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: 'Jogo não encontrado' });
+      res.status(201).json({ message: "Jogo criado com sucesso!" });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    // Atualiza categorias se enviadas
-    if (categories && Array.isArray(categories)) {
-      await pool.query('DELETE FROM game_category WHERE id_game = ?', [id]);
-      if (categories.length > 0) {
-        const categoryValues = categories.map((id_category: number) => [id, id_category]);
-        await pool.query('INSERT INTO game_category (id_game, id_category) VALUES ?', [categoryValues]);
-      }
+  // atyaliza o jogo pelos comandos de um (Admin)
+  updateGame = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id_game = toInt(req.params.id, 0);
+      if (!id_game) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
+      const dto = req.body as UpdateGameDTO;
+
+      await pool.query<ResultSetHeader>("SET @usuario_logado = ?", [req.user?.id_user,]); // Trigger de auditoria de preço dispara automaticamente no banco
+
+      const game = await this.gameService.update({ ...dto, id_game });
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_TO_UPDATE");
+
+      res.status(200).json({ message: "Jogo atualizado com sucesso!" });
+    } catch (error) {
+      next(error);
     }
+  };
 
-    return res.status(200).json({ message: 'Jogo atualizado com sucesso!' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao atualizar jogo', error });
-  }
-};
+  // Deleta o jogo pelos comandos de (admin)
+  deleteGame = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const id_game = toInt(req.params.id, 0);
+      if (!id_game) throw new AppError("ID inválido", 400, "ID_NOT_SENT_OR_INVALID");
 
-// Deleta o jogo pelos comandos de (admin) 
-export const deleteGame = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+      const game = await this.gameService.delete(id_game);
+      if (!game) throw new AppError("Jogo não encontrado", 404, "NOT_FOUND_GAME_TO_DELETE");
 
-    const [result] = await pool.query('DELETE FROM game WHERE id_game = ?', [id]);
-
-    if ((result as any).affectedRows === 0) {
-      return res.status(404).json({ message: 'Jogo não encontrado' });
+      res.status(200).json({ message: "Jogo deletado com sucesso!" });
+    } catch (error) {
+      next(error);
     }
-
-    return res.status(200).json({ message: 'Jogo deletado com sucesso!' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: 'Erro ao deletar jogo', error });
-  }
-};
+  };
+}

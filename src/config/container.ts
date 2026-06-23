@@ -1,0 +1,40 @@
+import { AuthController } from "../controllers/auth.Controller.js";
+import { CategoryController } from "../controllers/category.Controller.js";
+import { CheckoutController } from "../controllers/checkout.Controller.js";
+import { GameController } from "../controllers/game.Controller.js";
+import { OrderController } from "../controllers/order.Controller.js";
+import { UserController } from "../controllers/user.Controller.js";
+import { CategoryRepository } from "../repositories/CategoryRepository.js";
+import { GameRepository } from "../repositories/GameRepository.js";
+import { OrderRepository } from "../repositories/OrderRepository.js";
+import { PurchasedItemsRepository } from "../repositories/PurchasedItemsRepository.js";
+import { UserRepository } from "../repositories/UserRepository.js";
+import { AuthService } from "../services/auth.Service.js";
+import { CategoryService } from "../services/category.Service.js";
+import { CheckoutService } from "../services/checkout.Service.js";
+import { GameService } from "../services/game.Service.js";
+import { OrderService } from "../services/order.Service.js";
+import { PurchasedItemsService } from "../services/purchasedItems.Service.js";
+import { UserService } from "../services/user.Service.js";
+import pool from "./database.js";
+
+const userRepository     = new UserRepository();
+const gameRepository     = new GameRepository(pool);
+const orderRepository    = new OrderRepository();
+const categoryRepository = new CategoryRepository();
+const purchasedItemsRepository = new PurchasedItemsRepository();
+
+export const userService          = new UserService(userRepository);
+export const gameService          = new GameService(gameRepository, pool);
+export const orderService         = new OrderService(orderRepository);
+export const categoryService      = new CategoryService(categoryRepository);
+export const purchasedItemsService = new PurchasedItemsService(purchasedItemsRepository);
+export const authService          = new AuthService(userRepository);
+export const checkoutService      = new CheckoutService(orderService, purchasedItemsService);
+
+export const userController     = new UserController(userService);
+export const gameController     = new GameController(gameService);
+export const orderController    = new OrderController(orderService);
+export const categoryController = new CategoryController(categoryService);
+export const authController     = new AuthController(authService, userService);
+export const checkoutController = new CheckoutController(checkoutService, orderService);

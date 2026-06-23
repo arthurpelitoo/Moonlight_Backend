@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import { getCategories, getCategoryById, createCategory, updateCategory, deleteCategory } from '../controllers/category.Controller.js';
+import { CategoryController } from '../controllers/category.Controller.js';
 import { authMiddleware } from '../middlewares/auth.Middleware.js';
 import { adminMiddleware } from '../middlewares/admin.Middleware.js';
-
+import { CategoryService } from '../services/category.Service.js';
+import { categoryController } from '../config/container.js';
 const router = Router();
 
-router.get('/', getCategories);                                           // Público
-router.get('/:id', getCategoryById);                                      // Público
-router.post('/', authMiddleware, adminMiddleware, createCategory);         // Admin
-router.put('/:id', authMiddleware, adminMiddleware, updateCategory);       // Admin
-router.delete('/:id', authMiddleware, adminMiddleware, deleteCategory);    // Admin
+router.get('/pag', categoryController.getCategoriesPaginated); // Usuário Lista as categorias
+router.get('/:id', categoryController.getCategoryById); // Usuário Busca a categoria
+router.get('/', categoryController.getCategories);  // só pra completar o crud
+router.post('/', authMiddleware, adminMiddleware, categoryController.createCategory); // Admin - Cria categoria
+router.put('/:id', authMiddleware, adminMiddleware, categoryController.updateCategory); // Admin - Atualiza categoria
+router.delete('/:id', authMiddleware, adminMiddleware, categoryController.deleteCategory); // Admin - Deleta categoria
 
 export default router;
