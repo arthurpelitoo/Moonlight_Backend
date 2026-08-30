@@ -1,6 +1,3 @@
-INSERT INTO user (name, email, cpf, password, type) VALUES ('DominicTorresmo', 'dominic@familia.com', '52405264005', '$2b$12$uoBWRR4eb/srXO969IGxmeoVWM9.KpJIlPa//G2Iv49If5w7KBJJ.', 'admin')
-/* a senha é Familia123 */
-
 -- ==========================================
 -- 1. INSERÇÃO NA TABELA: category
 -- ==========================================
@@ -114,3 +111,18 @@ INSERT INTO `game_category` (`id_game`, `id_category`) VALUES
 (26, 12), -- Don't Starve -> Sobrevivência
 (26, 6),  -- Don't Starve -> Estratégia
 (26, 9);  -- Don't Starve -> Indie
+
+
+-- ==========================================
+-- 4. INSERÇÃO NA TABELA: user
+-- ==========================================
+INSERT INTO user (name, email, cpf, password, type) VALUES ('DominicTorresmo', 'dominic@familia.com', '52405264005', '$2b$12$uoBWRR4eb/srXO969IGxmeoVWM9.KpJIlPa//G2Iv49If5w7KBJJ.', 'admin');
+-- seed de teste, ver .example.env para credenciais de desenvolvimento
+
+-- ==========================================
+-- 5. INSERÇÃO NA TABELA ASSOCIATIVA: user_roles
+-- ==========================================
+-- Dominic: dá a role admin pra ele
+INSERT IGNORE INTO user_roles (id_user, id_role)
+SELECT u.id_user, r.id_role FROM user u, role r
+WHERE u.email = 'dominic@familia.com' AND r.name = 'admin';
