@@ -10,7 +10,8 @@ const pool = mysql.createPool({
         password: process.env.DB_PASSWORD || '',
         database: process.env.DB_DATABASE_NAME || 'moonlight',
     waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
+  multipleStatements: true
 });
 
 export default pool;
