@@ -1,0 +1,42 @@
+@startuml AD_Criacao_Checkout
+title Criação de Checkout (compra de jogos)
+
+start
+partition "CheckoutController.createCheckout" {
+  :Recebe requisição com itens do carrinho;
+}
+
+partition "CheckoutService.createPreference" {
+  :Para cada item do carrinho;
+  partition "OrderService.canPurchaseGame\n→ OrderRepository.canPurchaseGame" {
+    :Verifica se usuário já possui o jogo;
+  }
+  if (Usuário já possui algum item?) then (Sim)
+    :Lança erro USER_ALREADY_HAVE_GAME;
+    stop
+  else (Não)
+  endif
+  :Cria cliente Mercado Pago;
+  :Gera external_reference único;
+  :Cria preferência de pagamento na API do Mercado Pago;
+}
+
+partition "OrderService.createOrder" {
+  partition "order.validator" {
+    :validateOrderCreate\n(campos obrigatórios, preço, status);
+  }
+  partition "OrderRepository.create" {
+    :INSERT INTO \`order\`\n(status = pending);
+  }
+}
+
+partition "PurchasedItemsService.createItems" {
+  :Para cada item do carrinho;
+  partition "PurchasedItemsRepository.createItem" {
+    :INSERT INTO purchased_items\n(id_order, id_game, price);
+  }
+}
+
+:Retorna preference_id ao frontend;
+stop
+@enduml
