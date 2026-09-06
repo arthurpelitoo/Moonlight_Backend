@@ -3,6 +3,7 @@ import { CategoryController } from "../controllers/category.Controller.js";
 import { CheckoutController } from "../controllers/checkout.Controller.js";
 import { GameController } from "../controllers/game.Controller.js";
 import { OrderController } from "../controllers/order.Controller.js";
+import { UploadController } from "../controllers/upload.Controller.js";
 import { UserController } from "../controllers/user.Controller.js";
 import { CategoryRepository } from "../repositories/CategoryRepository.js";
 import { GameRepository } from "../repositories/GameRepository.js";
@@ -32,6 +33,7 @@ export const purchasedItemsService = new PurchasedItemsService(purchasedItemsRep
 export const authService          = new AuthService(userRepository);
 export const checkoutService      = new CheckoutService(orderService, purchasedItemsService);
 
+export const uploadController   = new UploadController();
 export const userController     = new UserController(userService);
 export const gameController     = new GameController(gameService);
 export const orderController    = new OrderController(orderService);
