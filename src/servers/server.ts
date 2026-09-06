@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import uploadRoutes from '../routes/upload.Routes.js'
 import userRoutes from '../routes/user.Routes.js';
 import gameRoutes from '../routes/games.Routes.js';
 import authRoutes from '../routes/auth.Routes.js';
@@ -20,6 +22,10 @@ app.get('/', (req, res) => {
   res.send('API do Projeto Moonlight rodando 🌙');
 });
 
+//para pegar imagens direto da pasta uploads.
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+app.use('/api/uploads', uploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/games', gameRoutes);
