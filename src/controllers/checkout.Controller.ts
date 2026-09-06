@@ -57,7 +57,7 @@ export class CheckoutController{
     //credenciais de teste:
 
     //Cartão	    Número	                Código de segurança	    Data de vencimento
-    // Mastercard    // 5031 4332 1540 6351   // 123                   // 11/30
+    // Mastercard    // 5480 8328 0103 3311   // 123                   // 11/30
 
     //Pra ser aprovado escreva no nome do titular do cartão: APRO
     //CPF: 12345678909
