@@ -2,7 +2,6 @@ import { cpf } from "cpf-cnpj-validator";
 import { AppError } from "../utils/AppError.js";
 import type { CreateUserDTO, UpdateMeDTO, UpdateUserDTO } from "../@types/user/dto/user.input.dto.js";
 import type { LoginAuthDTO, RegisterAuthDTO } from "../@types/auth/auth.dto.js";
-type validUserTypes = "customer" | "admin";
 
     const isCPFValid = (cpfUser: string): boolean => {
         return cpf.isValid(cpfUser);
@@ -23,18 +22,18 @@ type validUserTypes = "customer" | "admin";
         return true;
     };
 
-    const isUserTypeValid = (type: string): type is validUserTypes => {
-        return ['customer', 'admin'].includes(type as validUserTypes);
+    export function hasSelectedRole(roleIds: number[]): boolean {
+        return roleIds.length > 0;
     }
 
     export const assertRequiredFields = (fields: unknown[]): void => {
-        if (fields.some(field => field == null || (typeof field === 'string' && !field.trim()))) 
+        if (fields.some(field => field == null || (typeof field === 'string' && !field.trim())))
         throw new AppError("Todos os campos são obrigatórios", 400, "INVALID_FIELDS");
         // o ultimo caso é pra evitar de mandarem ' '.
     }
 
     export const assertName = (name: string): void => {
-        if (name.length > 16) throw new AppError('Nome deve ter até 16 caracteres máximos', 400, "INVALID_NAME"); 
+        if (name.length > 16) throw new AppError('Nome deve ter até 16 caracteres máximos', 400, "INVALID_NAME");
     }
 
     export const assertCpf = (cpf: string): void => {
@@ -42,24 +41,24 @@ type validUserTypes = "customer" | "admin";
     }
 
     export const assertEmail = (email: string): void => {
-        if (!isEmailValid(email)) throw new AppError('Email inválido', 400, "INVALID_EMAIL"); 
+        if (!isEmailValid(email)) throw new AppError('Email inválido', 400, "INVALID_EMAIL");
     }
 
     export const assertPassword = (password: string): void => {
-        if (!isStrongPassword(password)) throw new AppError('Senha deve ter pelo menos 8 a 16 caracteres, maiúscula, minúscula, número', 400, "WEAK_PASSWORD"); 
+        if (!isStrongPassword(password)) throw new AppError('Senha deve ter pelo menos 8 a 16 caracteres, maiúscula, minúscula, número', 400, "WEAK_PASSWORD");
     }
 
-    export const assertType = (type: string): void => {
-        if (!isUserTypeValid(type)) throw new AppError('Tipo inválido', 400, "INVALID_TYPE"); 
+    export const assertRole = (id_roles: number[]): void => {
+        if (!hasSelectedRole(id_roles)) throw new AppError('O usuario não possui cargos vinculados', 400, "INVALID_TYPE");
     }
 
     export const validateUser = (dto: CreateUserDTO | UpdateUserDTO): void => {
-        assertRequiredFields([dto.name, dto.email, dto.password, dto.cpf, dto.type]);
+        assertRequiredFields([dto.name, dto.email, dto.password, dto.cpf, dto.id_roles]);
         assertName(dto.name);
         assertEmail(dto.email);
         assertCpf(dto.cpf);
         assertPassword(dto.password);
-        assertType(dto.type);
+        assertRole(dto.id_roles);
     }
 
     export const validateRegister = (dto: RegisterAuthDTO): void => {

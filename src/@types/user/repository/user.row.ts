@@ -3,9 +3,16 @@
  */
 
 import type { RowDataPacket } from "mysql2";
-import type { UserResponseCountRowsDTO, UserResponseDTO } from "../dto/user.output.dto.js";
+import type { UserResponseCountRowsDTO} from "../dto/user.output.dto.js";
+import type { RoleName } from "../../role/role.types.js";
 
-export type UserRow = RowDataPacket & UserResponseDTO;
+export type UserRow = RowDataPacket & {
+  id_user: number;
+  name: string;
+  email: string;
+  cpf: string;
+  roles: string | null;
+};
 
 export type UserRowWithPassword = RowDataPacket &{
     id_user: number,
@@ -13,7 +20,12 @@ export type UserRowWithPassword = RowDataPacket &{
     email: string,
     password: string,
     cpf: string,
-    type: 'customer' | 'admin';
+    roles: RoleName[]
+    role_version: number;
 };
 
 export type UserCountRows = RowDataPacket & UserResponseCountRowsDTO;
+
+export type UserRoleVersionRow = RowDataPacket & {
+  role_version: number
+}
