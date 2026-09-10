@@ -11,10 +11,11 @@ import { validateRegister, validateUpdateMe, validateUser } from '../validators/
 import type { UserRoleRepository } from '../repositories/UserRoleRepository.js';
 import pool from '../config/database.js';
 import type { RoleService } from './role.Service.js';
+import type { Pool } from 'mysql2/promise';
 
 export class UserService {
 
-  constructor(private userRepository: UserRepository, private userRoleRepository: UserRoleRepository, private roleService: RoleService) {}
+  constructor(private userRepository: UserRepository, private userRoleRepository: UserRoleRepository, private roleService: RoleService, private pool: Pool) {}
 
   async findAllPaginated(query: GetUsersPaginatedDTO): Promise<PaginatedResponse<UserResponseDTO>> {
 
@@ -39,7 +40,7 @@ export class UserService {
   }
 
   async create(dto: CreateUserDTO): Promise<number> {
-    const connection = await pool.getConnection();
+    const connection = await this.pool.getConnection();
     await connection.beginTransaction();
     try {
       validateUser(dto);
@@ -63,7 +64,7 @@ export class UserService {
   }
 
   async update(dto: UpdateUserDTO): Promise<boolean> {
-    const connection = await pool.getConnection();
+    const connection = await this.pool.getConnection();
     await connection.beginTransaction();
     try {
       validateUser(dto);
@@ -96,7 +97,7 @@ export class UserService {
   }
 
   async register(dto: RegisterAuthDTO): Promise<number>{ // registro que o cliente pode fazer
-    const connection = await pool.getConnection();
+    const connection = await this.pool.getConnection();
     await connection.beginTransaction();
     try {
       validateRegister(dto);

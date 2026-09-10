@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import type { UserRepository } from "../../repositories/UserRepository.js";
 import type { UserWithPassword } from "../../@types/user/repository/user.repository.js";
 import type { AuthResponseDTO } from "../../@types/auth/auth.dto.js";
+import type { UserRoleRepository } from "../../repositories/UserRoleRepository.js";
 
 jest.unstable_mockModule("bcryptjs", () => ({
   default: { compare: jest.fn() },
@@ -33,6 +34,9 @@ describe("AuthService - Unitário", () => {
   const mockUserRepository = {
     findByEmail: jest.fn<(email: string) => Promise<AuthResponseDTO | null>>(),
   } as unknown as UserRepository;
+
+  const mockUserRoleRepository = {
+  } as unknown as UserRoleRepository;
   // cria um objeto fake que imita o UserRepository.
   // jest.fn<() => Promise<AuthResponseDTO | null>>() cria uma função monitorada
   // já tipada com o retorno correto — assim o mockResolvedValue aceita AuthResponseDTO | null.
@@ -40,7 +44,7 @@ describe("AuthService - Unitário", () => {
   //   1. as unknown — desliga a checagem do TS (o objeto não implementa tudo do UserRepository)
   //   2. as UserRepository — convence o TS que é do tipo certo pra passar no construtor
 
-  const service = new AuthService(mockUserRepository);
+  const service = new AuthService(mockUserRepository, mockUserRoleRepository);
   // instancia o AuthService passando o repositório fake.
   // é a injeção de dependência funcionando a favor dos testes —
   // em vez do repositório real que faria SQL, passamos o mock.
@@ -85,7 +89,8 @@ describe("AuthService - Unitário", () => {
         name: "João",
         email: "joao@email.com",
         password: "Qwert678",
-        type: "customer",
+        roles: ["admin"],
+        role_version: 1,
         cpf: "000.000.000-00",
       } as AuthResponseDTO; // objeto fake representando um usuário que o mock vai retornar.
 
@@ -171,7 +176,8 @@ describe("AuthService - Unitário", () => {
 
       const user: UserWithPassword = {
         id_user: 1,
-        type: "customer",
+        roles: ["admin"],
+        role_version: 1,
         name: "João",
         email: "joao@email.com",
         password: "Qwert678",
@@ -181,7 +187,7 @@ describe("AuthService - Unitário", () => {
       // chama o método real — por baixo ele chama o jwt.sign fake.
 
       expect(mockAssignatureSign).toHaveBeenCalledWith(
-        { id_user: 1, type: "customer" },
+        { id_user: 1, roles: user.roles, role_version: user.role_version },
         "meu_secret",
         { expiresIn: "8h" },
       );
@@ -203,7 +209,8 @@ describe("AuthService - Unitário", () => {
 
       const user: UserWithPassword = {
         id_user: 1,
-        type: "customer",
+        roles: ["admin"],
+        role_version: 1,
         name: "João",
         email: "joao@email.com",
         password: "Qwert678",

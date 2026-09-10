@@ -32,7 +32,7 @@ const userRoleRepository = new UserRoleRepository();
 const roleRepository = new RoleRepository();
 
 export const roleService = new RoleService(roleRepository, userRoleRepository, userRepository);
-export const userService          = new UserService(userRepository, userRoleRepository, roleService);
+export const userService          = new UserService(userRepository, userRoleRepository, roleService, pool);
 export const gameService          = new GameService(gameRepository, pool);
 export const orderService         = new OrderService(orderRepository);
 export const categoryService      = new CategoryService(categoryRepository);
