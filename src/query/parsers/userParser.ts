@@ -8,5 +8,5 @@ export const parseUserQuery = (query: Request['query']): GetUsersPaginatedDTO =>
     name: toString(query.name),
     email: toString(query.email),
     cpf: toString(query.cpf),
-    type: toString(query.type)
+    role: toString(query.role)
 })

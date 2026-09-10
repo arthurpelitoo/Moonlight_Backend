@@ -8,10 +8,14 @@ import { buildSqlFilters } from '../builders/sql/sqlFilterBuilder.js';
 import { userFilterConfig } from '../query/filters/userFilterConfig.js';
 import { AppError } from '../utils/AppError.js';
 import { validateRegister, validateUpdateMe, validateUser } from '../validators/user.validator.js';
+import type { UserRoleRepository } from '../repositories/UserRoleRepository.js';
+import pool from '../config/database.js';
+import type { RoleService } from './role.Service.js';
+import type { Pool } from 'mysql2/promise';
 
 export class UserService {
 
-  constructor(private userRepository: UserRepository) {}
+  constructor(private userRepository: UserRepository, private userRoleRepository: UserRoleRepository, private roleService: RoleService, private pool: Pool) {}
 
   async findAllPaginated(query: GetUsersPaginatedDTO): Promise<PaginatedResponse<UserResponseDTO>> {
 
@@ -36,27 +40,56 @@ export class UserService {
   }
 
   async create(dto: CreateUserDTO): Promise<number> {
-    validateUser(dto);
+    const connection = await this.pool.getConnection();
+    await connection.beginTransaction();
+    try {
+      validateUser(dto);
+      const emailExists = await this.emailAlreadyExists(dto.email);
+      if (emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
 
-    const emailExists = await this.emailAlreadyExists(dto.email);
-    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+      const cleanCpf = this.cpfCleaner(dto.cpf);
+      const hashedPassword = await this.generateHash(dto.password!);
 
-    const cleanCpf = this.cpfCleaner(dto.cpf);
-    const hashedPassword = await this.generateHash(dto.password!);
+      const id_user = await this.userRepository.create({ ...dto, cpf: cleanCpf, password: hashedPassword }, connection);
+      await this.userRoleRepository.replaceAll(id_user, dto.id_roles, connection);
 
-    return this.userRepository.create({...dto, cpf: cleanCpf, password: hashedPassword});
+      await connection.commit();
+      return id_user;
+    } catch (err){
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   }
 
   async update(dto: UpdateUserDTO): Promise<boolean> {
-    validateUser(dto);
+    const connection = await this.pool.getConnection();
+    await connection.beginTransaction();
+    try {
+      validateUser(dto);
+      const emailExists = await this.emailTakenByAnotherUser(dto.email, dto.id_user);
+      if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
 
-    const emailExists = await this.emailTakenByAnotherUser(dto.email, dto.id_user);
-    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+      const cleanCpf = this.cpfCleaner(dto.cpf);
+      const hashedPassword = await this.generateHash(dto.password!);
 
-    const cleanCpf = this.cpfCleaner(dto.cpf);
-    const hashedPassword = await this.generateHash(dto.password!);
-    
-    return this.userRepository.update({...dto, cpf: cleanCpf, password: hashedPassword})
+      const result = await this.userRepository.update({ ...dto, cpf: cleanCpf, password: hashedPassword }, connection)
+
+      const currentRolesId = await this.userRoleRepository.findRoleIdsByUser(dto.id_user, connection);
+      const rolesChanged = !this.areRolesSetsEqual(currentRolesId, dto.id_roles)
+      if (rolesChanged) {
+        await this.roleService.syncUserRoles(dto.id_user, dto.id_roles, connection)
+      }
+
+      await connection.commit();
+      return result;
+    } catch (err){
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   }
 
   async delete(id_user: number): Promise<boolean> {
@@ -64,15 +97,27 @@ export class UserService {
   }
 
   async register(dto: RegisterAuthDTO): Promise<number>{ // registro que o cliente pode fazer
-    validateRegister(dto);
+    const connection = await this.pool.getConnection();
+    await connection.beginTransaction();
+    try {
+      validateRegister(dto);
+      const emailExists = await this.emailAlreadyExists(dto.email);
+      if (emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
 
-    const emailExists = await this.emailAlreadyExists(dto.email);
-    if(emailExists) throw new AppError('Email já cadastrado', 409, 'EMAIL_EXISTS');
+      const cleanCpf = this.cpfCleaner(dto.cpf);
+      const hashedPassword = await this.generateHash(dto.password!);
 
-    const cleanCpf = this.cpfCleaner(dto.cpf);
-    const hashedPassword = await this.generateHash(dto.password!);
+      const id_user = await this.userRepository.create({ ...dto, cpf: cleanCpf, password: hashedPassword });
+      await this.userRoleRepository.associateUserWithRoleById(id_user, 'customer', connection);
 
-    return this.userRepository.create({...dto, cpf: cleanCpf, password: hashedPassword, type: "customer"});
+      await connection.commit();
+      return id_user;
+    } catch (err){
+      await connection.rollback();
+      throw err;
+    } finally {
+      connection.release();
+    }
   }
 
   async updateMe(dto: UpdateMeDTO): Promise<boolean> { // edição que o cliente pode fazer
@@ -80,7 +125,7 @@ export class UserService {
 
     const cleanCpf = this.cpfCleaner(dto.cpf);
     const hashedPassword = await this.generateHash(dto.password!);
-    
+
     return this.userRepository.updateMe({...dto, cpf: cleanCpf, password: hashedPassword});
   }
 
@@ -90,6 +135,13 @@ export class UserService {
 
   async emailTakenByAnotherUser(email: string, currentUserId: number){
       return this.userRepository.emailTakenByAnotherUser(email, currentUserId);
+  }
+
+  private areRolesSetsEqual(initialRoles: number[], newRoles: number[]): boolean {
+    if (initialRoles.length !== newRoles.length) return false;
+    const sortedA = [...initialRoles].sort((x, y) => x - y);
+    const sortedB = [...newRoles].sort((x, y) => x - y);
+    return sortedA.every((id_role, i) => id_role === sortedB[i]);
   }
 
   private cpfCleaner = (cpf: string): string => {

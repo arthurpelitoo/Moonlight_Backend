@@ -7,7 +7,8 @@ dotenv.config();
 
 interface JwtPayload {
   id_user: number;
-  type: "admin" | "customer";
+  roles: string[];
+  role_version: number;
 }
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
@@ -38,7 +39,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
           const user = await userService.findById(payload.id_user);
           if (!user) return res.status(401).json({ message: 'Usuário não encontrado' });
 
-          req.user = { id_user: payload.id_user, type: payload.type };
+          req.user = { id_user: payload.id_user, roles: payload.roles, role_version: payload.role_version };
           next();
       });
   } catch {
