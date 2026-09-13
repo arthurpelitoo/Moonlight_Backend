@@ -20,7 +20,7 @@ quantas vezes o container seja parado/recriado.
    docker start moonlight-db
    ```
    (se ele não existir ainda, use o `docker run` original documentado
-   no repo de devops)
+   no repo de devops ou então o docker run do PASSO: "Recriando o container" abaixo)
 
 2. Confirme que o `.env` do backend aponta para o banco certo:
    ```env
