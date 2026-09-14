@@ -28,11 +28,12 @@ export class CheckoutService{
             const external_reference = this.generateExternalReference();
 
             const preference = await this.createMercadoPreference(preferenceClient, dto, external_reference);
+
             const id_order = await this.createOrder(dto, preference.id!, external_reference);
 
             await this.createPurchasedItems({id_order, items: dto.items} as PurchasedItemsDTO);
 
-            return { preference_id: preference.id, checkout_url: preference.sandbox_init_point};
+            return { preference_id: preference.id, checkout_url: preference.init_point ?? preference.sandbox_init_point};
         }
 
         async getPaymentStatus(payment_id: string): Promise<void> {
