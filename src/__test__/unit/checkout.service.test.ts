@@ -87,7 +87,7 @@ describe("CheckoutService - Unitário", () => {
 
       const result = await service.createPreference(checkoutPayload);
 
-      expect(result).toBe({id: "pref_123"});
+      expect(result.preference_id).toBe("pref_123");
     });
 
     it("deve criar o pedido com os dados corretos", async () => {
