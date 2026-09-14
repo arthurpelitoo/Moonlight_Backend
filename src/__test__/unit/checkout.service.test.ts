@@ -81,7 +81,7 @@ describe("CheckoutService - Unitário", () => {
 
     it("deve retornar o id da preferência criada", async () => {
       mockCanPurchaseGame.mockResolvedValue(true);
-      mockPreferenceCreate.mockResolvedValue({ id: "pref_123", init_point: "https://mp.com/prod", sandbox_init_point: "https://mp.com/test" });
+      mockPreferenceCreate.mockResolvedValue({ id: "pref_123" });
       mockCreateOrder.mockResolvedValue(42);
       mockCreatePurchasedItems.mockResolvedValue(undefined);
 
