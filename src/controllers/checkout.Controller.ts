@@ -15,9 +15,9 @@ export class CheckoutController{
         try {
             const dto = req.body as CreateCheckoutDTO;
 
-            const preference_id = await this.checkoutService.createPreference(dto);
+            const { preference_id, checkout_url } = await this.checkoutService.createPreference(dto);
 
-            res.status(200).json({ preference_id });
+            res.status(200).json({ preference_id, checkout_url });
         } catch (error) {
             next(error);
         }

@@ -13,7 +13,10 @@ export class CheckoutService{
         private purchasedItemsService: PurchasedItemsService
     ) {}
 
-        async createPreference(dto: CreateCheckoutDTO): Promise<string | undefined>{
+        async createPreference(dto: CreateCheckoutDTO): Promise<{
+            preference_id: string | undefined;
+            checkout_url: string | undefined;
+        }>{
             for (const item of dto.items) {
                 const canBuy = await this.orderService.canPurchaseGame(dto.user.id_user, item.id_game);
                 if (!canBuy) throw new AppError(`Você já possui o jogo "${item.title}" na sua biblioteca.`, 400, "USER_ALREADY_HAVE_GAME");
@@ -25,11 +28,12 @@ export class CheckoutService{
             const external_reference = this.generateExternalReference();
 
             const preference = await this.createMercadoPreference(preferenceClient, dto, external_reference);
+
             const id_order = await this.createOrder(dto, preference.id!, external_reference);
 
             await this.createPurchasedItems({id_order, items: dto.items} as PurchasedItemsDTO);
 
-            return preference.id;
+            return { preference_id: preference.id, checkout_url: preference.init_point ?? preference.sandbox_init_point};
         }
 
         async getPaymentStatus(payment_id: string): Promise<void> {
