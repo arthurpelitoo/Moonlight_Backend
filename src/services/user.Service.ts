@@ -9,7 +9,6 @@ import { userFilterConfig } from '../query/filters/userFilterConfig.js';
 import { AppError } from '../utils/AppError.js';
 import { validateRegister, validateUpdateMe, validateUser } from '../validators/user.validator.js';
 import type { UserRoleRepository } from '../repositories/UserRoleRepository.js';
-import pool from '../config/database.js';
 import type { RoleService } from './role.Service.js';
 import type { Pool } from 'mysql2/promise';
 
