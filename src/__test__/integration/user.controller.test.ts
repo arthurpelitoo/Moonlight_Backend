@@ -91,7 +91,7 @@ describe('User Controller', () => {
           email: uniqueEmail,
           password: VALID_PASSWORD,
           cpf: VALID_CPF,
-          type: 'customer',
+          id_roles: [2]
         });
 
       expect(res.statusCode).toBe(201);
@@ -122,7 +122,7 @@ describe('User Controller', () => {
           email: `teste${Date.now()}@email.com`,
           password: 'fraca',
           cpf: VALID_CPF,
-          type: 'customer',
+          id_roles: [2]
         });
       expect(res.statusCode).toBe(400);
     });
@@ -136,7 +136,7 @@ describe('User Controller', () => {
           email: `teste${Date.now()}@email.com`,
           password: VALID_PASSWORD,
           cpf: '000.000.000-00',
-          type: 'customer',
+          id_roles: [2]
         });
       expect(res.statusCode).toBe(400);
     });
@@ -150,7 +150,7 @@ describe('User Controller', () => {
           email: 'dominic@familia.com',
           password: VALID_PASSWORD,
           cpf: VALID_CPF,
-          type: 'customer',
+          id_roles: [2]
         });
       expect(res.statusCode).toBe(409);
     });
@@ -158,7 +158,7 @@ describe('User Controller', () => {
     it('deve retornar 401 sem autenticação', async () => {
       const res = await request(app)
         .post('/api/users/')
-        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, type: 'customer' });
+        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, id_roles: [2] });
       expect(res.statusCode).toBe(401);
     });
   });
@@ -173,7 +173,7 @@ describe('User Controller', () => {
           email: `atualizado${Date.now()}@email.com`,
           password: VALID_PASSWORD,
           cpf: VALID_CPF,
-          type: 'customer',
+          id_roles: [2]
         });
       expect(res.statusCode).toBe(200);
       expect(res.body.message).toBe('Usuário atualizado com sucesso!');
@@ -183,14 +183,14 @@ describe('User Controller', () => {
       const res = await request(app)
         .put('/api/users/abc')
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, type: 'customer' });
+        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, id_roles: [2] });
       expect(res.statusCode).toBe(400);
     });
 
     it('deve retornar 401 sem autenticação', async () => {
       const res = await request(app)
         .put(`/api/users/${createdUserId}`)
-        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, type: 'customer' });
+        .send({ name: 'X', email: 'x@x.com', password: VALID_PASSWORD, cpf: VALID_CPF, id_roles: [2] });
       expect(res.statusCode).toBe(401);
     });
   });

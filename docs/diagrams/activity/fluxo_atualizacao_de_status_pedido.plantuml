@@ -1,0 +1,34 @@
+@startuml AD_Atualizacao_Status_Pedido
+title Atualização de Status do Pedido via Webhook Mercado Pago
+
+start
+partition "CheckoutController.handleWebhook" {
+  :Mercado Pago envia POST /checkout/webhook;
+  if (body.type == "payment"?) then (Não)
+    :Responde 204 (ignorado);
+    stop
+  else (Sim)
+  endif
+  if (paymentId presente?) then (Não)
+    :Responde 204 (ignorado);
+    stop
+  else (Sim)
+  endif
+}
+
+partition "CheckoutService.getPaymentStatus" {
+  :Consulta status do pagamento na API do Mercado Pago;
+  :mapStatus() traduz status do MP\n(approved/pending/rejected/cancelled)\npara status interno (approved/pending/canceled);
+}
+
+partition "OrderService.updateOrderStatus" {
+  :Valida DTO (status, external_reference);
+}
+
+partition "OrderRepository.updateStatus" {
+  :UPDATE \`order\` SET status = ?\nWHERE external_reference = ?;
+}
+
+:Responde 200 ao Mercado Pago;
+stop
+@enduml

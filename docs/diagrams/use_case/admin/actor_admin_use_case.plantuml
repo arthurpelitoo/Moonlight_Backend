@@ -1,0 +1,25 @@
+@startuml UC_Admin_Estudio
+left to right direction
+actor Administrador
+
+rectangle "Moonlight - Casos de Uso Administrativo" {
+  usecase "Atribuir Cargo a Usuário" as UC20
+  usecase "Suspender/Banir Usuário" as UC21
+  usecase "Gerenciar Categoria" as UC22
+  usecase "Gerenciar Promoção" as UC23
+  usecase "Aprovar/Rejeitar Jogo" as UC24
+  usecase "Aprovar/Rejeitar Reembolso" as UC25
+  usecase "Criar/Editar Jogo" as UC26
+  usecase "Fazer Upload de Mídia" as UC27
+
+  Administrador --> UC20
+  Administrador --> UC21
+  Administrador --> UC22
+  Administrador --> UC23
+  Administrador --> UC24
+  Administrador --> UC25
+  Administrador --> UC26
+
+  UC27 ..> UC26 : <<extend>>
+}
+@enduml

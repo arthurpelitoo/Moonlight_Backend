@@ -26,6 +26,8 @@ export type AuthResponseDTO = {
     email: string,
     password?: string,
     cpf: string,
-    type: 'customer' | 'admin';
-    token?: string;
+    // type: 'customer' | 'admin',
+    role_version: number,
+    token?: string,
+    roles?: string[]
 }

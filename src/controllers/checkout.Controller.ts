@@ -15,9 +15,9 @@ export class CheckoutController{
         try {
             const dto = req.body as CreateCheckoutDTO;
 
-            const preference_id = await this.checkoutService.createPreference(dto);
+            const { preference_id, checkout_url } = await this.checkoutService.createPreference(dto);
 
-            res.status(200).json({ preference_id });
+            res.status(200).json({ preference_id, checkout_url });
         } catch (error) {
             next(error);
         }
@@ -27,10 +27,10 @@ export class CheckoutController{
         try {
             const body = req.body as MercadoPagoWebhookDTO;
 
-            if (body.type !== "payment") res.sendStatus(204);
+            if (body.type !== "payment") { res.sendStatus(204); return; }
 
             const paymentId = body.data?.id;
-            if (!paymentId) res.sendStatus(204);
+            if (!paymentId) { res.sendStatus(204); return; }
 
             const payment = await this.checkoutService.getPaymentStatus(paymentId);
 
@@ -57,11 +57,11 @@ export class CheckoutController{
     //credenciais de teste:
 
     //Cartão	    Número	                Código de segurança	    Data de vencimento
-    // Mastercard    // 5031 4332 1540 6351   // 123                   // 11/30
+    // Mastercard    // 5480 8328 0103 3311   // 123                   // 11/30
 
-    //Pra ser aprovado escreva no nome do titular do cartão: APRO 
+    //Pra ser aprovado escreva no nome do titular do cartão: APRO
     //CPF: 12345678909
     //mais detalhes em: https://www.mercadopago.com.br/developers/panel/app
 
-    
+
 }

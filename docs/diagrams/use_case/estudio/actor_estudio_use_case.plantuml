@@ -1,0 +1,19 @@
+@startuml UC_Estudio
+left to right direction
+actor "Estúdio Parceiro" as Estudio
+
+rectangle "Moonlight - Casos de Uso Estudio" {
+  usecase "Associar categorias existentes aos Proprios Jogos" as UC32
+  usecase "Gerenciar Promoção dos Proprios Jogos" as UC33
+  usecase "Criar/Editar Jogo (Rascunho)" as UC34
+  usecase "Enviar Jogo para Revisão" as UC35
+  usecase "Fazer Upload de Mídia" as UC36
+
+  Estudio --> UC32
+  Estudio --> UC33
+  Estudio --> UC34
+
+  UC36 ..> UC34 : <<extend>>
+  UC35 ..> UC34 : <<extend>>
+}
+@enduml

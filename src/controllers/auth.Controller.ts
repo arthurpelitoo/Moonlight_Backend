@@ -17,7 +17,7 @@ export class AuthController {
         res.status(200).json({
             message: 'Login realizado com sucesso!',
             token: user.token,
-            user: {id_user: user.id_user, name: user.name, email: user.email, cpf: user.cpf, type: user.type}
+            user: {id_user: user.id_user, name: user.name, email: user.email, cpf: user.cpf, roles: user.roles}
           });
       } catch (error) {
           next(error);

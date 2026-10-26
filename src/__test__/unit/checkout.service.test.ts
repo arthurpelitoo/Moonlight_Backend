@@ -87,12 +87,12 @@ describe("CheckoutService - Unitário", () => {
 
       const result = await service.createPreference(checkoutPayload);
 
-      expect(result).toBe("pref_123");
+      expect(result.preference_id).toBe("pref_123");
     });
 
     it("deve criar o pedido com os dados corretos", async () => {
       mockCanPurchaseGame.mockResolvedValue(true);
-      mockPreferenceCreate.mockResolvedValue({ id: "pref_abc" });
+      mockPreferenceCreate.mockResolvedValue({ id: "pref_abc", init_point: "https://mp.com/prod", sandbox_init_point: "https://mp.com/test" });
       mockCreateOrder.mockResolvedValue(10);
       mockCreatePurchasedItems.mockResolvedValue(undefined);
 
@@ -123,6 +123,28 @@ describe("CheckoutService - Unitário", () => {
       expect(mockCreatePurchasedItems).toHaveBeenCalledWith(
         expect.objectContaining({ id_order: 99, id_game: 2 }),
       );
+    });
+
+    it("deve retornar checkout_url usando init_point quando disponível", async () => {
+      mockCanPurchaseGame.mockResolvedValue(true);
+      mockPreferenceCreate.mockResolvedValue({ id: "pref_123", init_point: "https://mp.com/prod" });
+      mockCreateOrder.mockResolvedValue(1);
+      mockCreatePurchasedItems.mockResolvedValue(undefined);
+
+      const result = await service.createPreference(checkoutPayload);
+
+      expect(result.checkout_url).toBe("https://mp.com/prod");
+    });
+
+    it("deve usar sandbox_init_point como fallback quando init_point não existir", async () => {
+      mockCanPurchaseGame.mockResolvedValue(true);
+      mockPreferenceCreate.mockResolvedValue({ id: "pref_123", sandbox_init_point: "https://mp.com/sandbox" });
+      mockCreateOrder.mockResolvedValue(1);
+      mockCreatePurchasedItems.mockResolvedValue(undefined);
+
+      const result = await service.createPreference(checkoutPayload);
+
+      expect(result.checkout_url).toBe("https://mp.com/sandbox");
     });
 
     it("deve propagar erro se a criação da preferência falhar", async () => {

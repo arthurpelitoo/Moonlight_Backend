@@ -1,0 +1,56 @@
+sequenceDiagram
+    autonumber
+
+    actor Cliente
+
+    box rgb(49, 53, 57) Camada de Aplicação
+        participant CC@{ "type": "control", "alias": "CheckoutController" }
+        participant CS@{ "type": "control", "alias": "CheckoutService" }
+        participant OS@{ "type": "control", "alias": "OrderService" }
+        participant PIS@{ "type": "control", "alias": "PurchasedItemsService" }
+        participant OV@{ "type": "boundary", "alias": "order.validator" }
+    end
+
+    box rgb(26, 49, 30) Persistência
+        participant OR@{ "type": "database", "alias": "OrderRepository" }
+        participant PIR@{ "type": "database", "alias": "PurchasedItemsRepository" }
+    end
+
+    box rgb(74, 32, 11) Serviços Externos
+        participant MP@{ "type": "boundary", "alias": "Mercado Pago API" }
+    end
+
+    Cliente->>+CC: POST /checkout (itens do carrinho)
+    CC->>+CS: createPreference(dto)
+
+    loop para cada item do carrinho
+        CS->>+OS: canPurchaseGame(id_user, id_game)
+        OS->>+OR: canPurchaseGame(id_user, id_game)
+        OR-->>-OS: boolean
+        OS-->>-CS: boolean
+    end
+
+    alt usuário já possui algum item
+        CS-->>CC: throw AppError (USER_ALREADY_HAVE_GAME)
+        CC-->>Cliente: 400 - Já possui o jogo
+    else itens liberados para compra
+        CS->>+MP: Preference.create(itens, back_urls, notification_url)
+        MP-->>-CS: preference_id
+
+        CS->>+OS: createOrder(dto)
+        OS->>+OV: validateOrderCreate(dto)
+        OV-->>-OS: ok
+        OS->>+OR: create(dto)
+        OR-->>-OS: id_order
+        OS-->>-CS: id_order
+
+        CS->>+PIS: createItems(id_order, itens)
+        loop para cada item do carrinho
+            PIS->>+PIR: createItem(id_order, id_game, price)
+            PIR-->>-PIS: ok
+        end
+        PIS-->>-CS: ok
+
+        CS-->>-CC: preference_id
+        CC-->>-Cliente: 200 - preference_id
+    end

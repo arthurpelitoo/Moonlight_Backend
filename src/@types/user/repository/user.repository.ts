@@ -1,3 +1,4 @@
+import type { RoleName } from "../../role/role.types.js";
 
 export type UserWithPassword = {
   id_user: number;
@@ -5,7 +6,8 @@ export type UserWithPassword = {
   email: string;
   password: string;
   cpf: string;
-  type: 'customer' | 'admin';
+  roles: RoleName[]
+  role_version: number;
 };
 
 export type UserWithoutPassword = {
@@ -13,5 +15,5 @@ export type UserWithoutPassword = {
   name: string;
   email: string;
   cpf: string;
-  type: 'customer' | 'admin';
+  roles: RoleName[]
 }

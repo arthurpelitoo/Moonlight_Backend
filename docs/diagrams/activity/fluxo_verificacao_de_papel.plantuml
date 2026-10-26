@@ -1,0 +1,20 @@
+@startuml AD_Verificacao_Papel
+title Verificação de Papel em Rota Protegida (role-based)
+start
+:Requisição chega com token JWT;
+:authMiddleware decodifica token;
+:roleMiddleware consulta role_version do usuário no banco;
+
+if (role_version do token != role_version do banco?) then (Sim)
+  :Retorna 401 - Faça login novamente;
+  stop
+else (Não)
+endif
+
+if (roles do token incluem alguma role permitida na rota?) then (Sim)
+  :Libera acesso;
+else (Não)
+  :Retorna 403 - Sem permissão para essa ação;
+endif
+stop
+@enduml

@@ -1,0 +1,37 @@
+sequenceDiagram
+    autonumber
+    box rgb(74, 32, 11) Serviço Externo
+        participant MP@{ "type": "boundary", "alias": "Mercado Pago" }
+    end
+    box rgb(49, 53, 57) Camada de Aplicação
+        participant CC@{ "type": "control", "alias": "CheckoutController" }
+        participant CS@{ "type": "control", "alias": "CheckoutService" }
+        participant OS@{ "type": "control", "alias": "OrderService" }
+        participant OV@{ "type": "boundary", "alias": "order.validator" }
+    end
+    box rgb(26, 49, 30) Persistência
+        participant OR@{ "type": "database", "alias": "OrderRepository" }
+    end
+
+    MP->>+CC: POST /checkout/webhook (body)
+
+    alt body.type != "payment"
+        CC-->>-MP: 204 (ignorado)
+    else body.type == "payment"
+        alt paymentId ausente
+            CC-->>MP: 204 (ignorado)
+        else paymentId presente
+            CC->>+CS: getPaymentStatus(paymentId)
+            CS->>+MP: Payment.get(paymentId)
+            MP-->>-CS: payment (status, external_reference)
+            Note over CS: mapStatus() traduz status do MP<br/>(approved/pending/rejected/cancelled)<br/>para status interno (approved/pending/canceled)
+            CS->>+OS: updateOrderStatus({status, external_reference})
+            OS->>+OV: validateOrderStatusUpdate(dto)
+            OV-->>-OS: ok
+            OS->>+OR: updateStatus(dto)
+            OR-->>-OS: boolean (affectedRows > 0)
+            OS-->>-CS: boolean
+            CS-->>-CC: ok
+            CC-->>MP: 200
+        end
+    end

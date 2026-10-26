@@ -12,6 +12,9 @@ import type {
   GetUsersPaginatedDTO,
 } from "../../@types/user/dto/user.input.dto.js";
 import type { RegisterAuthDTO } from "../../@types/auth/auth.dto.js";
+import type { UserRoleRepository } from "../../repositories/UserRoleRepository.js";
+import type { RoleService } from "../../services/role.Service.js";
+import type { Pool, PoolConnection } from "mysql2/promise";
 
 jest.unstable_mockModule("bcryptjs", () => ({
   default: {
@@ -38,12 +41,33 @@ const mockUserRepository = {
     jest.fn<(email: string, id_user: number) => Promise<boolean>>(),
 } as unknown as UserRepository;
 
+const mockUserRoleRepository = {
+  findRoleIdsByUser: jest.fn<(id_user: number) => Promise<number[]>>(),
+  replaceAll: jest.fn(),
+  associateUserWithRoleById: jest.fn(),
+} as unknown as UserRoleRepository;
+
+const mockRoleService = {
+  syncUserRoles: jest.fn(),
+} as unknown as RoleService;
+
+const mockPoolConnection = {
+  beginTransaction: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  commit: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  rollback: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+  release: jest.fn<() => void>(),
+} as unknown as PoolConnection;
+
+const mockPool = {
+  getConnection: jest.fn<() => Promise<PoolConnection>>(),
+} as unknown as Pool;
+
 // CPF e senha válidos reutilizados nos testes
 const VALID_CPF = "744.846.070-69";
 const VALID_PASSWORD = "Abc12345";
 
 describe("UserService - Unitário", () => {
-  const service = new UserService(mockUserRepository);
+  const service = new UserService(mockUserRepository, mockUserRoleRepository, mockRoleService, mockPool);
 
   const mockSearchAllPaginated =
     mockUserRepository.findAllPaginated as jest.MockedFunction<
@@ -79,8 +103,17 @@ describe("UserService - Unitário", () => {
       (email: string, id: number) => Promise<boolean>
     >;
 
+  const mockFindRoleIdsByUser = mockUserRoleRepository.findRoleIdsByUser as jest.MockedFunction<
+    (id_user: number) => Promise<number[]>
+  >;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (
+      mockPool.getConnection as jest.MockedFunction<
+        () => Promise<PoolConnection>
+      >
+    ).mockResolvedValue(mockPoolConnection);
   });
 
   describe("findAllPaginated", () => {
@@ -91,7 +124,7 @@ describe("UserService - Unitário", () => {
           name: "João",
           email: "joao@email.com",
           cpf: VALID_CPF,
-          type: "customer",
+          roles: ["customer"]
         },
       ]);
       mockCount.mockResolvedValue(1);
@@ -132,7 +165,7 @@ describe("UserService - Unitário", () => {
           name: "João",
           email: "joao@email.com",
           cpf: VALID_CPF,
-          type: "customer",
+          roles: ["admin"]
         },
       ]);
 
@@ -149,7 +182,7 @@ describe("UserService - Unitário", () => {
         name: "João",
         email: "joao@email.com",
         cpf: VALID_CPF,
-        type: "customer",
+        roles: ["admin"]
       });
 
       const result = await service.findById(1);
@@ -173,7 +206,7 @@ describe("UserService - Unitário", () => {
       email: "joao@email.com",
       password: VALID_PASSWORD,
       cpf: VALID_CPF,
-      type: "customer",
+      id_roles: [1]
     };
 
     it("deve retornar o id do usuário criado", async () => {
@@ -193,9 +226,10 @@ describe("UserService - Unitário", () => {
 
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
-          cpf: "74484607069", // sem pontos e traço
+          cpf: "74484607069",
           password: "hashed_password",
         }),
+        expect.anything()
       );
     });
 
@@ -225,39 +259,32 @@ describe("UserService - Unitário", () => {
       ).rejects.toThrow("CPF inválido");
     });
 
-    it("deve lançar erro se tipo inválido", async () => {
-      await expect(
-        service.create({ ...createPayload, type: "superadmin" as any }),
-      ).rejects.toThrow("Tipo inválido");
-    });
+    // it("deve lançar erro se tipo inválido", async () => {
+    //   await expect(
+    //     service.create({ ...createPayload, type: "superadmin" as any }),
+    //   ).rejects.toThrow("Tipo inválido");
+    // });
   });
 
   describe("update", () => {
-    const updatePayload: UpdateUserDTO = {
-      id_user: 1,
-      name: "João",
-      email: "joao@email.com",
-      password: VALID_PASSWORD,
-      cpf: VALID_CPF,
-      type: "customer",
-    };
+      const updatePayload: UpdateUserDTO = {
+        id_user: 1, name: "João", email: "joao@email.com",
+        password: VALID_PASSWORD, cpf: VALID_CPF, id_roles: [2]
+      };
 
-    it("deve retornar true se atualizado", async () => {
-      mockEmailTakenByAnotherUser.mockResolvedValue(false);
-      mockUpdate.mockResolvedValue(true);
+      it("deve retornar true se atualizado", async () => {
+        mockEmailTakenByAnotherUser.mockResolvedValue(false);
+        mockUpdate.mockResolvedValue(true);
+        mockFindRoleIdsByUser.mockResolvedValue([2]); // sem cast solto, já tipado
 
-      const result = await service.update(updatePayload);
+        const result = await service.update(updatePayload);
+        expect(result).toBe(true);
+      });
 
-      expect(result).toBe(true);
-    });
-
-    it("deve lançar erro se email pertence a outro usuário", async () => {
-      mockEmailTakenByAnotherUser.mockResolvedValue(true);
-
-      await expect(service.update(updatePayload)).rejects.toThrow(
-        "Email já cadastrado",
-      );
-    });
+      it("deve lançar erro se email pertence a outro usuário", async () => {
+        mockEmailTakenByAnotherUser.mockResolvedValue(true);
+        await expect(service.update(updatePayload)).rejects.toThrow("Email já cadastrado");
+      });
   });
 
   describe("delete", () => {
@@ -289,14 +316,14 @@ describe("UserService - Unitário", () => {
       expect(id).toBe(5);
     });
 
-    it("deve forçar type=customer independente do payload", async () => {
+    it("deve associar o usuário à role customer", async () => {
       mockEmailAlreadyExists.mockResolvedValue(false);
       mockCreate.mockResolvedValue(5);
 
       await service.register(registerPayload);
 
-      expect(mockCreate).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "customer" }),
+      expect(mockUserRoleRepository.associateUserWithRoleById).toHaveBeenCalledWith(
+        5, 'customer', expect.anything()
       );
     });
 

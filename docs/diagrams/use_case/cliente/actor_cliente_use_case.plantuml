@@ -1,0 +1,35 @@
+@startuml UC_Cliente
+left to right direction
+actor Cliente
+
+rectangle "Moonlight - Casos de Uso do Cliente" {
+  usecase "Cadastrar-se" as UC01
+  usecase "Autenticar-se" as UC02
+  usecase "Navegar/Buscar Jogos" as UC03
+  usecase "Ver Detalhes do Jogo" as UC04
+  usecase "Gerenciar Wishlist" as UC05
+  usecase "Finalizar Compra" as UC06
+  usecase "Consultar Pedidos/Biblioteca" as UC07
+  usecase "Avaliar Jogo" as UC08
+  usecase "Solicitar Reembolso" as UC09
+  usecase "Solicitar Exclusão da Conta" as UC10
+
+  Cliente --> UC01
+  Cliente --> UC02
+  Cliente --> UC03
+  Cliente --> UC05
+  Cliente --> UC06
+  Cliente --> UC07
+  Cliente --> UC08
+  Cliente --> UC09
+  Cliente --> UC10
+
+  UC04 ..> UC03 : <<extend>>
+  UC05 ..> UC02 : <<include>>
+  UC06 ..> UC02 : <<include>>
+  UC07 ..> UC02 : <<include>>
+  UC08 ..> UC02 : <<include>>
+  UC09 ..> UC02 : <<include>>
+  UC10 ..> UC02 : <<include>>
+}
+@enduml

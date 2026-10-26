@@ -1,0 +1,22 @@
+@startuml AD_Aprovacao_Jogo
+title Fluxo de Aprovação de Jogo (review_status)
+start
+:Estúdio cria jogo (draft);
+repeat
+  :Estúdio edita jogo/mídia;
+repeat while (Deseja continuar editando?) is (Sim)
+->Não;
+:Estúdio envia jogo para revisão;
+:review_status = pending_review;
+:Admin analisa jogo;
+if (Jogo atende aos critérios?) then (Sim)
+  :review_status = approved;
+  :Jogo pode ser tornado visível na loja (active = true);
+else (Não)
+  :review_status = rejected;
+  :Admin registra motivo em rejection_reason;
+  :Estúdio é notificado do motivo (rejection_reason);
+  :Estúdio pode editar novamente (rejection_reason é limpo ao reenviar);
+endif
+stop
+@enduml
