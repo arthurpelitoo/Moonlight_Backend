@@ -28,7 +28,6 @@ CREATE TABLE `user` (
   `cpf` VARCHAR(11) NOT NULL,
   `password` VARCHAR(255) NOT NULL COMMENT 'Hash da senha',
   `created_at` DATETIME NOT NULL DEFAULT (CURRENT_TIMESTAMP) COMMENT 'Quando foi criado',
-  `type` ENUM ('customer', 'admin') NOT NULL DEFAULT 'customer',
   `role_version` int NOT NULL DEFAULT 1,
   `account_status` ENUM ('active', 'banned', 'suspended', 'pending_deletion') NOT NULL DEFAULT 'active' COMMENT 'Status da conta',
   `deletion_scheduled_at` DATETIME COMMENT 'Se o status for de recuperação de conta, vai ter até um certo tempo pra pedir de volta'

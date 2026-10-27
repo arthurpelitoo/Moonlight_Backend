@@ -1,7 +1,7 @@
 -- ==========================================
 -- 1. INSERÇÃO NA TABELA: category
 -- ==========================================
-INSERT INTO `category` (`id_category`, `name`, `description`, `image`) VALUES
+INSERT IGNORE INTO `category` (`id_category`, `name`, `description`, `image`) VALUES
 (1, 'RPG', 'Jogos de interpretação de papéis, evolução de personagens e histórias épicas.', 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/292030/header.jpg'),
 (2, 'FPS', 'Ação intensa e precisão em jogos de tiro em primeira pessoa.', 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/782330/header.jpg'),
 (3, 'Corrida', 'Alta velocidade, simulação e arcade sobre quatro rodas.', 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1849540/header.jpg'),
@@ -22,7 +22,7 @@ INSERT INTO `category` (`id_category`, `name`, `description`, `image`) VALUES
 -- ==========================================
 -- 2. INSERÇÃO NA TABELA: game
 -- ==========================================
-INSERT INTO `game` (`id_game`, `title`, `description`, `price`, `image`, `banner_image`, `link`, `launch_date`, `active`) VALUES
+INSERT IGNORE INTO `game` (`id_game`, `title`, `description`, `price`, `image`, `banner_image`, `link`, `launch_date`, `active`) VALUES
 (1, 'Elden Ring', 'Levante-se, Maculado, e seja guiado pela graça para portar o poder do Anel Príncipio e se tornar um Lorde Príncipio nas Terras Intermédias.', 249.90, 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1245620/hero_capsule.jpg', 'https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_hero.jpg', '/game/elden-ring', '2022-02-25', 1),
 (2, 'Counter-Strike 2', 'Por mais de duas décadas, o Counter-Strike ofereceu uma experiência competitiva de elite. Agora, o próximo capítulo da saga CS começou.', 0.00, 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/730/hero_capsule.jpg', 'https://cdn.akamai.steamstatic.com/steam/apps/730/library_hero.jpg', '/game/cs2', '2023-09-27', 1),
 (3, 'Forza Horizon 5', 'Sua aventura Horizon definitiva te espera! Explore as paisagens vibrantes e em constante evolução do mundo aberto do México.', 249.00, 'https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1551360/hero_capsule.jpg', 'https://cdn.akamai.steamstatic.com/steam/apps/1551360/library_hero.jpg', '/game/forza-horizon-5', '2021-11-09', 1),
@@ -53,7 +53,7 @@ INSERT INTO `game` (`id_game`, `title`, `description`, `price`, `image`, `banner
 -- ==========================================
 -- 3. INSERÇÃO NA TABELA ASSOCIATIVA: game_category
 -- ==========================================
-INSERT INTO `game_category` (`id_game`, `id_category`) VALUES
+INSERT IGNORE INTO `game_category` (`id_game`, `id_category`) VALUES
 (1, 1), -- Elden Ring -> RPG
 (1, 4), -- Elden Ring -> Ação e Aventura
 (2, 2), -- Counter-Strike 2 -> FPS
@@ -116,7 +116,7 @@ INSERT INTO `game_category` (`id_game`, `id_category`) VALUES
 -- ==========================================
 -- 4. INSERÇÃO NA TABELA: user
 -- ==========================================
-INSERT INTO user (name, email, cpf, password, type) VALUES ('DominicTorresmo', 'dominic@familia.com', '52405264005', '$2b$12$uoBWRR4eb/srXO969IGxmeoVWM9.KpJIlPa//G2Iv49If5w7KBJJ.', 'admin');
+INSERT IGNORE INTO user (name, email, cpf, password) VALUES ('DominicTorresmo', 'dominic@familia.com', '52405264005', '$2b$12$uoBWRR4eb/srXO969IGxmeoVWM9.KpJIlPa//G2Iv49If5w7KBJJ.');
 -- seed de teste, ver .example.env para credenciais de desenvolvimento
 
 -- ==========================================
