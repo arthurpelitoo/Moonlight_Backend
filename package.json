@@ -1,6 +1,6 @@
 {
   "name": "moonlight_backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -51,6 +51,6 @@
     "supertest": "^7.2.2",
     "swagger-autogen": "^2.23.7",
     "ts-jest": "^29.4.9",
-    "ts-node-dev": "^2.0.0",
+    "ts-node-dev": "^2.0.0"
   }
 }
