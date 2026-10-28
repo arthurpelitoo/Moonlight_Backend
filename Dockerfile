@@ -11,7 +11,13 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-## ESTÁGIO 2: PRODUÇÃO
+# ESTÁGIO 2: MIGRATE
+# Reaproveita o builder (tem tsx, tools/, database/ e src/).
+# Só o serviço "migrate" do compose usa este alvo para fazer migraçoes e seed no banco.
+# Fica ANTES do estágio final porque o último estágio é o padrão do `docker build`.
+FROM builder AS migrate
+
+## ESTÁGIO 3: PRODUÇÃO
 # Só /dist compilado + dependencias
 # todo o resto descartado.
 
