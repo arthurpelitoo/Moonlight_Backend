@@ -1,6 +1,6 @@
 # Manter coluna `type` no `user` durante migração para RBAC
 
-**Status:** Aceito
+**Status:** Substituído por 2026-10-27-remocao-coluna-type
 **Data:** 2026-08-29
 
 ## Contexto

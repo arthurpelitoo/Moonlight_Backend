@@ -1,6 +1,6 @@
 {
   "name": "moonlight_backend",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "test:coverage": "NODE_ENV=test jest --coverage",
     "migrate": "tsx tools/migrate.ts",
     "seed": "tsx tools/seed.ts",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "keywords": [],
   "author": "",
@@ -28,14 +28,11 @@
     "mercadopago": "^2.12.0",
     "multer": "^2.3.0",
     "mysql2": "^3.20.0",
-    "pool": "^0.4.1",
     "reflect-metadata": "^0.2.2",
     "swagger-ui-express": "^5.0.1",
-    "type": "^2.7.3",
-    "types": "^0.1.1",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "validator": "^13.15.26",
-    "tsx": "^4.21.0"
+    "validator": "^13.15.26"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
