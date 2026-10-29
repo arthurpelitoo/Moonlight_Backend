@@ -69,30 +69,6 @@ CREATE TABLE `price_audit` (
   `altered_byUser` VARCHAR(50) NOT NULL
 );
 
-
-CREATE TRIGGER trg_audit_game_price
-AFTER UPDATE ON game
-FOR EACH ROW
-BEGIN
-    IF OLD.price <> NEW.price THEN
-        INSERT INTO price_audit (
-            id_game,
-            price_old,
-            price_new,
-            altered_byUser
-        )
-        VALUES (
-            NEW.id_game,
-            OLD.price,
-            NEW.price,
-            COALESCE(@usuario_logado, USER())
-        );
-    END IF;
-END
-
-
-
-
 ALTER TABLE `game_category` ADD CONSTRAINT `fk_game_category_game` FOREIGN KEY (`id_game`) REFERENCES `game` (`id_game`) ON DELETE CASCADE;
 
 ALTER TABLE `game_category` ADD CONSTRAINT `fk_game_category_category` FOREIGN KEY (`id_category`) REFERENCES `category` (`id_category`) ON DELETE CASCADE;
